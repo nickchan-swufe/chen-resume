@@ -1,0 +1,1294 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>星轨成班 — 大模型课表识别 + 约束排班引擎</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#0065fd',
+            secondary: '#0ea5e9',
+            accent: '#7c3aed',
+            bg: '#f5f8ff',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --primary: #0065fd;
+      --secondary: #0ea5e9;
+      --accent: #7c3aed;
+      --bg: #f5f8ff;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+      background: linear-gradient(180deg, #f5f8ff 0%, #eef4ff 50%, #f5f8ff 100%);
+      color: #1e293b;
+      overflow-x: hidden;
+      line-height: 1.7;
+    }
+
+    /* ========== 滚动动画 ========== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    /* ========== 导航栏 ========== */
+    .nav-glass {
+      background: rgba(245, 248, 255, 0.85);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: 1px solid rgba(0, 101, 253, 0.08);
+    }
+
+    /* ========== 卡片 ========== */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 101, 253, 0.08);
+      border-radius: 20px;
+      box-shadow: 0 4px 24px rgba(0, 101, 253, 0.06);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0, 101, 253, 0.12);
+      border-color: rgba(0, 101, 253, 0.15);
+    }
+    .gradient-border {
+      position: relative;
+      background: white;
+      border-radius: 20px;
+    }
+    .gradient-border::before {
+      content: '';
+      position: absolute;
+      inset: -1.5px;
+      border-radius: 21px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+      z-index: -1;
+      opacity: 0.3;
+    }
+
+    /* ========== 按钮 ========== */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 12px 28px;
+      border-radius: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 101, 253, 0.3);
+    }
+    .btn-secondary {
+      background: white;
+      color: var(--primary);
+      padding: 12px 28px;
+      border-radius: 12px;
+      font-weight: 600;
+      border: 1.5px solid rgba(0, 101, 253, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-secondary:hover {
+      border-color: var(--primary);
+      background: rgba(0, 101, 253, 0.04);
+    }
+
+    /* ========== Tab切换 ========== */
+    .tab-btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #64748b;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(0,101,253,0.1), rgba(124,58,237,0.08));
+      color: var(--primary);
+      border-color: rgba(0,101,253,0.2);
+      font-weight: 600;
+    }
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ========== 流程图节点 ========== */
+    .flow-node {
+      position: relative;
+      padding: 12px 16px;
+      background: white;
+      border-radius: 14px;
+      border: 1.5px solid rgba(0,101,253,0.12);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      min-width: 120px;
+    }
+    .flow-node:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 16px rgba(0,101,253,0.12);
+    }
+    .flow-node .node-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 8px;
+    }
+    .flow-arrow {
+      width: 32px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      position: relative;
+      flex-shrink: 0;
+    }
+    .flow-arrow::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: -3px;
+      width: 0; height: 0;
+      border-left: 6px solid var(--secondary);
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+    }
+    .flow-detail {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.4s ease;
+      background: rgba(0,101,253,0.03);
+      border-radius: 10px;
+      margin-top: 0;
+    }
+    .flow-detail.expanded {
+      max-height: 200px;
+      padding: 12px 16px;
+      margin-top: 12px;
+    }
+
+    /* ========== 代码块 ========== */
+    .code-block {
+      background: #0f172a;
+      border-radius: 14px;
+      padding: 14px;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #e2e8f0;
+      overflow-x: auto;
+    }
+    .code-block .comment { color: #64748b; }
+    .code-block .keyword { color: #7dd3fc; }
+    .code-block .string { color: #86efac; }
+    .code-block .tag { color: #fca5a5; }
+
+    /* ========== 架构图 ========== */
+    .arch-layer {
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+    }
+    .arch-layer.frontend { background: linear-gradient(135deg, rgba(0,101,253,0.06), rgba(14,165,233,0.04)); border: 1.5px solid rgba(0,101,253,0.12); }
+    .arch-layer.cloud { background: linear-gradient(135deg, rgba(14,165,233,0.06), rgba(6,182,212,0.04)); border: 1.5px solid rgba(14,165,233,0.12); }
+    .arch-layer.data { background: linear-gradient(135deg, rgba(245,158,11,0.06), rgba(251,146,60,0.04)); border: 1.5px solid rgba(245,158,11,0.12); }
+    .arch-layer.ai { background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(139,92,246,0.05)); border: 1.5px solid rgba(124,58,237,0.18); }
+
+    /* ========== 排班演示 ========== */
+    .schedule-cell {
+      padding: 10px 8px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 500;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    .schedule-cell.filled { background: linear-gradient(135deg, rgba(0,101,253,0.1), rgba(14,165,233,0.08)); color: var(--primary); border: 1px solid rgba(0,101,253,0.15); }
+    .schedule-cell.empty { background: rgba(241, 245, 249, 0.8); color: #94a3b8; border: 1px dashed rgba(148,163,184,0.3); }
+    .schedule-cell.anomaly { background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(248,113,113,0.06)); color: #dc2626; border: 1px solid rgba(239,68,68,0.2); }
+    .schedule-cell.animating {
+      animation: cellPop 0.4s ease;
+    }
+    @keyframes cellPop {
+      0% { transform: scale(0.8); opacity: 0; }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ========== 标签 ========== */
+    .tag-pitfall {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(248,113,113,0.08));
+      color: #dc2626;
+      border: 1px solid rgba(239,68,68,0.2);
+    }
+
+    /* ========== 占位图 ========== */
+    .placeholder-img {
+      background: linear-gradient(135deg, rgba(0,101,253,0.04), rgba(124,58,237,0.04));
+      border: 2px dashed rgba(0,101,253,0.15);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      min-height: 160px;
+      gap: 8px;
+    }
+
+    /* ========== 渐变文字 ========== */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* ========== 移动端菜单 ========== */
+    #mobile-menu { display: none; }
+    #mobile-menu.open { display: block; }
+
+    /* ========== 二维码弹窗 ========== */
+    .qr-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .qr-modal.open { display: flex; }
+    .qr-modal-content {
+      background: white;
+      border-radius: 24px;
+      padding: 32px;
+      text-align: center;
+      max-width: 320px;
+      width: 100%;
+      animation: modalIn 0.3s ease;
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ========== 导航栏 ========== -->
+<nav id="navbar" class="fixed top-0 left-0 right-0 z-50 nav-glass">
+  <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+    <a href="#hero" class="font-bold text-lg gradient-text">星轨成班</a>
+    <div class="hidden md:flex items-center gap-4 text-sm font-medium text-slate-600">
+      <a href="#overview" class="hover:text-primary transition-colors">概览</a>
+      <a href="#painpoint" class="hover:text-primary transition-colors">背景</a>
+      <a href="#workflow" class="hover:text-primary transition-colors">流程</a>
+      <a href="#ai" class="hover:text-primary transition-colors">AI识别</a>
+      <a href="#engine" class="hover:text-primary transition-colors">排班引擎</a>
+      <a href="#architecture" class="hover:text-primary transition-colors">架构</a>
+      <a href="#decisions" class="hover:text-primary transition-colors">复盘</a>
+      <a href="#result" class="hover:text-primary transition-colors">成果</a>
+    </div>
+    <button id="mobile-btn" class="md:hidden p-2 text-slate-600">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+  </div>
+  <div id="mobile-menu" class="md:hidden mx-4 mb-1 glass-card p-4">
+    <div class="flex flex-col gap-2 text-sm font-medium text-slate-600">
+      <a href="#overview" class="py-2 px-3 rounded-lg hover:bg-primary/5">概览</a>
+      <a href="#painpoint" class="py-2 px-3 rounded-lg hover:bg-primary/5">背景</a>
+      <a href="#workflow" class="py-2 px-3 rounded-lg hover:bg-primary/5">流程</a>
+      <a href="#ai" class="py-2 px-3 rounded-lg hover:bg-primary/5">AI识别</a>
+      <a href="#engine" class="py-2 px-3 rounded-lg hover:bg-primary/5">排班引擎</a>
+      <a href="#architecture" class="py-2 px-3 rounded-lg hover:bg-primary/5">架构</a>
+      <a href="#decisions" class="py-2 px-3 rounded-lg hover:bg-primary/5">复盘</a>
+      <a href="#result" class="py-2 px-3 rounded-lg hover:bg-primary/5">成果</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ========== 版块一：项目概览 Hero ========== -->
+<section id="overview" class="relative z-10 pt-16 pb-10 px-6">
+  <div class="max-w-5xl mx-auto w-full">
+    <div class="grid lg:grid-cols-2 gap-8 items-center">
+      <!-- 左侧信息 -->
+      <div class="reveal">
+        <div class="flex flex-wrap gap-2 mb-5">
+          <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold border border-emerald-100">已上线微信小程序</span>
+          <span class="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold border border-blue-100">独立开发</span>
+          <span class="px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-xs font-bold border border-purple-100">10天交付</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-black mb-1">
+          <span class="gradient-text">星轨成班</span>
+        </h1>
+        <p class="text-lg md:text-xl text-slate-500 mb-1">大模型课表识别 + 约束排班引擎</p>
+        <p class="text-slate-400 mb-5">10分钟搞定4小时的排班工作</p>
+
+        <div class="flex flex-wrap gap-4 mb-5">
+          <button onclick="openQR()" class="btn-primary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4h2v-4zM6 20h2v-4H6v4zm6-6h2v-4h-2v4zm-6 0h2v-4H6v4zm12-6h2V4h-2v4zM6 10h2V4H6v6zm6-6h2V4h-2v4z"/></svg>
+            扫码体验
+          </button>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5">
+          <div class="text-xs text-slate-400 mb-1">我的角色</div>
+          <div class="text-sm font-semibold text-slate-700">独立开发者</div>
+          <div class="text-xs text-slate-500 mt-1">产品设计 / 前端开发 / 云函数后端 / AI接入 全栈完成</div>
+          <div class="mt-3 flex items-center gap-2 text-xs text-slate-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            开发周期：10天（从需求设计到上线）
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧数据卡片 -->
+      <div class="reveal reveal-delay-2 grid gap-4">
+        <div class="glass-card rounded-2xl p-6 text-center">
+          <div class="text-4xl font-black gradient-text mb-1">24<span class="text-xl">倍</span></div>
+          <div class="text-sm text-slate-500">排班效率提升</div>
+          <div class="text-xs text-slate-400 mt-1">4小时 → 10分钟</div>
+        </div>
+        <div class="glass-card rounded-2xl p-6 text-center">
+          <div class="text-4xl font-black gradient-text mb-1">5<span class="text-xl">种</span></div>
+          <div class="text-sm text-slate-500">课表导入格式</div>
+          <div class="text-xs text-slate-400 mt-1">拍照 / Excel / CSV / PDF / 手动录入</div>
+        </div>
+        <div class="glass-card rounded-2xl p-6 text-center">
+          <div class="text-4xl font-black gradient-text mb-1">10~50<span class="text-xl">人</span></div>
+          <div class="text-sm text-slate-500">最佳提效规模</div>
+          <div class="text-xs text-slate-400 mt-1">学生组织 / 社团 / 班级</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 版块二：项目背景与痛点 ========== -->
+<section id="painpoint" class="relative z-10 py-14 px-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal text-center mb-10">
+      <span class="text-xs font-bold tracking-widest text-primary uppercase mb-1 block">Background</span>
+      <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-2">项目背景与痛点</h2>
+      <p class="text-slate-500">从真实场景出发，解决学生组织排班的核心难题</p>
+    </div>
+
+    <!-- 三个痛点卡片 -->
+    <div class="grid md:grid-cols-3 gap-4 mb-12">
+      <div class="reveal glass-card rounded-2xl p-6">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-red-400 to-orange-400 flex items-center justify-center text-white text-xl mb-1">📋</div>
+        <h3 class="font-bold text-slate-800 mb-1">课表收集繁琐</h3>
+        <p class="text-sm text-slate-500 leading-relaxed">成员课表格式各异（截图/Excel/手写），管理员需逐个催收、核对、汇总，信息散落在群聊中</p>
+      </div>
+      <div class="reveal reveal-delay-1 glass-card rounded-2xl p-6">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-amber-400 flex items-center justify-center text-white text-xl mb-1">⚠️</div>
+        <h3 class="font-bold text-slate-800 mb-1">人工排班易冲突</h3>
+        <p class="text-sm text-slate-500 leading-relaxed">人工核对空闲时间容易漏掉上课时间重叠、连续值班等问题，排完后经常需要返工调整</p>
+      </div>
+      <div class="reveal reveal-delay-2 glass-card rounded-2xl p-6">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-400 flex items-center justify-center text-white text-xl mb-1">⏱️</div>
+        <h3 class="font-bold text-slate-800 mb-1">排班耗时长</h3>
+        <p class="text-sm text-slate-500 leading-relaxed">一个30人组织的月度排班，管理员平均需要<strong class="text-slate-700">4小时</strong>，且反复修改耗时更长</p>
+      </div>
+    </div>
+
+    <!-- 解决方案 -->
+    <div class="reveal reveal-delay-3 glass-card rounded-3xl p-6">
+      <div class="text-center mb-5">
+        <h3 class="text-xl font-bold text-slate-900 mb-2">解决方案</h3>
+        <p class="text-slate-500">成员各自上传课表 → AI自动识别成结构化数据 → 排班引擎自动生成无冲突排班表</p>
+      </div>
+      <!-- 横向流程图 -->
+      <div class="flex flex-col md:flex-row items-center justify-center gap-4">
+        <div class="flow-node">
+          <div class="node-num">1</div>
+          <div class="text-sm font-semibold text-slate-800">上传课表</div>
+          <div class="text-xs text-slate-400 mt-1">拍照/文件/手动</div>
+        </div>
+        <div class="flow-arrow hidden md:block"></div>
+        <div class="md:hidden text-primary text-xl">↓</div>
+        <div class="flow-node">
+          <div class="node-num">2</div>
+          <div class="text-sm font-semibold text-slate-800">AI识别</div>
+          <div class="text-xs text-slate-400 mt-1">Kimi大模型解析</div>
+        </div>
+        <div class="flow-arrow hidden md:block"></div>
+        <div class="md:hidden text-primary text-xl">↓</div>
+        <div class="flow-node">
+          <div class="node-num">3</div>
+          <div class="text-sm font-semibold text-slate-800">一键排班</div>
+          <div class="text-xs text-slate-400 mt-1">约束引擎生成</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 新增：核心操作流程 ========== -->
+<section id="workflow" class="relative z-10 py-14 px-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal text-center mb-10">
+      <span class="text-xs font-bold tracking-widest text-primary uppercase mb-1 block">Workflow</span>
+      <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-2">核心操作流程</h2>
+      <p class="text-slate-500">从产品说明书提取的完整实例运行路径</p>
+    </div>
+
+    <!-- 流程总览图 -->
+    <div class="reveal glass-card rounded-2xl p-5 mb-7">
+      <div class="flex flex-wrap items-center justify-center gap-2 text-sm">
+        <span class="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold">打开小程序</span>
+        <span class="text-slate-300">→</span>
+        <span class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold">微信登录</span>
+        <span class="text-slate-300">→</span>
+        <span class="px-3 py-1.5 rounded-lg bg-purple-50 text-purple-600 font-semibold">创建/加入组织</span>
+        <span class="text-slate-300">→</span>
+        <span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 font-semibold">上传课表</span>
+        <span class="text-slate-300">→</span>
+        <span class="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-600 font-semibold">配置排班</span>
+        <span class="text-slate-300">→</span>
+        <span class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 font-semibold">生成结果</span>
+      </div>
+    </div>
+
+    <!-- 6个步骤 -->
+    <div class="space-y-4">
+      <!-- 步骤1 -->
+      <div class="reveal glass-card rounded-2xl p-5">
+        <div class="grid md:grid-cols-5 gap-5 items-start">
+          <div class="md:col-span-3">
+            <div class="flex items-start gap-4">
+              <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">1</span>
+              <div>
+                <h3 class="font-bold text-slate-800 mb-1">登录与身份选择 <span class="text-xs font-normal text-slate-400">游客 / 微信登录</span></h3>
+                <p class="text-sm text-slate-500">首次打开进入登录页，点击「微信一键登录」或「游客体验」先浏览功能。登录前需勾选同意《用户协议》与《隐私政策》。游客数据仅存本机。</p>
+              </div>
+            </div>
+          </div>
+          <div class="md:col-span-2 flex justify-center">
+            <img src="./knowledge_base/assets/登陆界面.jpg" alt="登录界面" class="rounded-2xl shadow-lg max-h-[320px] border border-slate-100">
+          </div>
+        </div>
+      </div>
+      <!-- 步骤2 -->
+      <div class="reveal reveal-delay-1 glass-card rounded-2xl p-5">
+        <div class="grid md:grid-cols-5 gap-5 items-start">
+          <div class="md:col-span-3">
+            <div class="flex items-start gap-4">
+              <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">2</span>
+              <div>
+                <h3 class="font-bold text-slate-800 mb-1">创建或加入组织 <span class="text-xs font-normal text-slate-400">管理员 / 成员</span></h3>
+                <p class="text-sm text-slate-500">注册时二选一：「创建组织」（自动成为管理员）或「邀请码加入」（输入6位邀请码）。创建者获得邀请码并分享给成员。</p>
+              </div>
+            </div>
+          </div>
+          <div class="md:col-span-2 flex justify-center">
+            <img src="./knowledge_base/assets/组织首页界面.jpg" alt="组织首页界面" class="rounded-2xl shadow-lg max-h-[320px] border border-slate-100">
+          </div>
+        </div>
+      </div>
+      <!-- 步骤3 -->
+      <div class="reveal reveal-delay-2 glass-card rounded-2xl p-5">
+        <div class="grid md:grid-cols-5 gap-5 items-start">
+          <div class="md:col-span-3">
+            <div class="flex items-start gap-4">
+              <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">3</span>
+              <div>
+                <h3 class="font-bold text-slate-800 mb-1">上传课表 <span class="text-xs font-normal text-slate-400">拍照 / 文件 / 手动</span></h3>
+                <p class="text-sm text-slate-500">三种方式任选：拍照/截图上传（AI识别）、文件导入（Excel/CSV/PDF）、手动录入。识别不清的课程会标「?」供人工校正，识别为空会给出明确提示。</p>
+              </div>
+            </div>
+          </div>
+          <div class="md:col-span-2 flex justify-center">
+            <img src="./knowledge_base/assets/上传课表界面.jpg" alt="上传课表界面" class="rounded-2xl shadow-lg max-h-[320px] border border-slate-100">
+          </div>
+        </div>
+      </div>
+      <!-- 步骤4 -->
+      <div class="reveal reveal-delay-3 glass-card rounded-2xl p-5">
+        <div class="grid md:grid-cols-5 gap-5 items-start">
+          <div class="md:col-span-3">
+            <div class="flex items-start gap-4">
+              <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">4</span>
+              <div>
+                <h3 class="font-bold text-slate-800 mb-1">配置排班规则 <span class="text-xs font-normal text-slate-400">管理员</span></h3>
+                <p class="text-sm text-slate-500">设置值班日期、循环排班、排班周期、节次划分、班次设置（时间/人数）、排班规则（均衡/同日上限/间隔/连排）。配置保存后一键生成。</p>
+              </div>
+            </div>
+          </div>
+          <div class="md:col-span-2 flex justify-center">
+            <img src="./knowledge_base/assets/排班配置界面.jpg" alt="排班配置界面" class="rounded-2xl shadow-lg max-h-[320px] border border-slate-100">
+          </div>
+        </div>
+      </div>
+      <!-- 步骤5 -->
+      <div class="reveal glass-card rounded-2xl p-5">
+        <div class="grid md:grid-cols-5 gap-5 items-start">
+          <div class="md:col-span-3">
+            <div class="flex items-start gap-4">
+              <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">5</span>
+              <div>
+                <h3 class="font-bold text-slate-800 mb-1">生成与查看排班 <span class="text-xs font-normal text-slate-400">全体可见</span></h3>
+                <p class="text-sm text-slate-500">系统以「班次×星期」课表式表格呈现结果，显示覆盖率统计。人手不足、超员或课表冲突会在「异常提示」中标红；管理员可点选单元格调整，支持导出分享。</p>
+              </div>
+            </div>
+          </div>
+          <div class="md:col-span-2 flex justify-center gap-3 flex-wrap">
+            <img src="./knowledge_base/assets/排班完成界面.jpg" alt="排班完成界面" class="rounded-2xl shadow-lg max-h-[320px] border border-slate-100">
+            <img src="./knowledge_base/assets/排班完成个人界面.jpg" alt="排班完成个人界面" class="rounded-2xl shadow-lg max-h-[320px] border border-slate-100">
+          </div>
+        </div>
+      </div>
+      <!-- 步骤6 -->
+      <div class="reveal reveal-delay-1 glass-card rounded-2xl p-5">
+        <div class="grid md:grid-cols-5 gap-5 items-start">
+          <div class="md:col-span-3">
+            <div class="flex items-start gap-4">
+              <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">6</span>
+              <div>
+                <h3 class="font-bold text-slate-800 mb-1">成员管理 <span class="text-xs font-normal text-slate-400">管理员</span></h3>
+                <p class="text-sm text-slate-500">显示总成员/已传课表/未传课表统计。管理员可添加成员、代传/重新上传课表、删除成员、切换管理员身份；普通成员为只读视图。</p>
+              </div>
+            </div>
+          </div>
+          <div class="md:col-span-2 flex justify-center">
+            <img src="./knowledge_base/assets/成员管理界面.jpg" alt="成员管理界面" class="rounded-2xl shadow-lg max-h-[320px] border border-slate-100">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal text-center mt-8">
+      <a href="./knowledge_base/mini_program/xinggui-manual-v2.html" target="_blank" class="btn-secondary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        查看完整产品说明书（含界面截图）
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 版块三：AI课表识别 ========== -->
+<section id="ai" class="relative z-10 py-14 px-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal text-center mb-10">
+      <span class="text-xs font-bold tracking-widest text-accent uppercase mb-1 block">Core AI Feature</span>
+      <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-2">AI 课表识别</h2>
+      <p class="text-slate-500">基于 Kimi k2.6 视觉理解大模型，5种格式一键识别</p>
+    </div>
+
+    <!-- 3.1 识别链路 -->
+    <div class="reveal glass-card rounded-3xl p-5 mb-7">
+      <h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2">
+        <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-white text-xs">3.1</span>
+        识别链路
+        <span class="text-xs text-slate-400 font-normal ml-2">（点击节点展开详情）</span>
+      </h3>
+      <div class="flex flex-wrap items-start justify-center gap-3">
+        <!-- 节点1 -->
+        <div class="flow-node" onclick="toggleDetail(this)">
+          <div class="node-num">1</div>
+          <div class="text-xs font-semibold">用户拍照/上传</div>
+          <div class="flow-detail">
+            <p class="text-xs text-slate-500">用户通过小程序拍照或选择本地文件（图片/Excel/CSV/PDF）上传</p>
+          </div>
+        </div>
+        <div class="flow-arrow hidden md:block mt-8"></div>
+        <div class="md:hidden text-primary text-xl w-full text-center">↓</div>
+        <!-- 节点2 -->
+        <div class="flow-node" onclick="toggleDetail(this)">
+          <div class="node-num">2</div>
+          <div class="text-xs font-semibold">云存储下载</div>
+          <div class="flow-detail">
+            <p class="text-xs text-slate-500">云函数从微信云存储下载文件，转换为base64编码</p>
+          </div>
+        </div>
+        <div class="flow-arrow hidden md:block mt-8"></div>
+        <div class="md:hidden text-primary text-xl w-full text-center">↓</div>
+        <!-- 节点3 -->
+        <div class="flow-node" onclick="toggleDetail(this)">
+          <div class="node-num">3</div>
+          <div class="text-xs font-semibold">调用Kimi k2.6</div>
+          <div class="flow-detail">
+            <p class="text-xs text-slate-500">调用Moonshot Kimi k2.6大模型的视觉理解能力</p>
+          </div>
+        </div>
+        <div class="flow-arrow hidden md:block mt-8"></div>
+        <div class="md:hidden text-primary text-xl w-full text-center">↓</div>
+        <!-- 节点4 -->
+        <div class="flow-node" onclick="toggleDetail(this)">
+          <div class="node-num">4</div>
+          <div class="text-xs font-semibold">模型纯文本输出</div>
+          <div class="flow-detail">
+            <p class="text-xs text-slate-500">模型输出纯文本表格（非JSON），token更少、响应更快</p>
+          </div>
+        </div>
+        <div class="flow-arrow hidden md:block mt-8"></div>
+        <div class="md:hidden text-primary text-xl w-full text-center">↓</div>
+        <!-- 节点5 -->
+        <div class="flow-node" onclick="toggleDetail(this)">
+          <div class="node-num">5</div>
+          <div class="text-xs font-semibold">确定性解析JSON</div>
+          <div class="flow-detail">
+            <p class="text-xs text-slate-500">程序用确定性规则将纯文本解析为结构化JSON，无需容错非法JSON</p>
+          </div>
+        </div>
+        <div class="flow-arrow hidden md:block mt-8"></div>
+        <div class="md:hidden text-primary text-xl w-full text-center">↓</div>
+        <!-- 节点6 -->
+        <div class="flow-node" onclick="toggleDetail(this)">
+          <div class="node-num">6</div>
+          <div class="text-xs font-semibold">0课程校验</div>
+          <div class="flow-detail">
+            <p class="text-xs text-slate-500">识别成功但0节课时，返回EMPTY_RESULT显式报错，杜绝静默丢数据</p>
+          </div>
+        </div>
+        <div class="flow-arrow hidden md:block mt-8"></div>
+        <div class="md:hidden text-primary text-xl w-full text-center">↓</div>
+        <!-- 节点7 -->
+        <div class="flow-node" onclick="toggleDetail(this)">
+          <div class="node-num">7</div>
+          <div class="text-xs font-semibold">返回+校对</div>
+          <div class="flow-detail">
+            <p class="text-xs text-slate-500">返回结构化课表数据，支持用户在页面上人工校对修改</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.2 三种识别策略 Tab -->
+    <div class="reveal reveal-delay-1 glass-card rounded-3xl p-5 mb-7">
+      <h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2">
+        <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-white text-xs">3.2</span>
+        三种识别策略
+      </h3>
+      <!-- Tab按钮 -->
+      <div class="flex flex-wrap gap-2 mb-5">
+        <button class="tab-btn active" onclick="switchTab(this, 'tab-vision')">图片识别 PROMPT_VISION</button>
+        <button class="tab-btn" onclick="switchTab(this, 'tab-file')">文件识别 PROMPT_FILE</button>
+        <button class="tab-btn" onclick="switchTab(this, 'tab-grid')">Excel网格 PROMPT_GRID</button>
+      </div>
+      <!-- Tab内容 -->
+      <div id="tab-vision" class="tab-content active">
+        <div class="mb-1">
+          <p class="text-sm text-slate-600 mb-1">单遍网格转录法。让模型按"HEAD表头行 + R节次数据行"逐行读出，星期由表头文字确定、节次由行标签确定，避免"数格子"导致的列偏移。</p>
+          <div class="code-block mb-1">
+            <div><span class="comment"># 模型输出示例</span></div>
+            <div>NAME:user</div>
+            <div>ID:20260801</div>
+            <div>HEAD:时间段|节次|星期一|星期二|星期三|星期四|星期五</div>
+            <div>R1-2:上午|1-2|·|·|高等数学|·|学术伦理规范与论文写作</div>
+            <div>R3-4:上午|3-4|·|管理学原理|·|·|·</div>
+            <div>R5-6:下午|5-6|Python语言|·|·|项目管理学|·</div>
+            <div class="mt-2"><span class="comment"># 规则要点</span></div>
+            <div><span class="comment"># - 星期写中文</span></div>
+            <div><span class="comment"># - 空格用 · 表示</span></div>
+            <div><span class="comment"># - 识别不清的课程名末尾加 ? 标记</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-file" class="tab-content">
+        <div class="mb-1">
+          <p class="text-sm text-slate-600 mb-1">复用统一OUTPUT_FORMAT，输出"星期-节次:课程名"格式，程序直接解析为结构化数据。</p>
+          <div class="code-block mb-1">
+            <div><span class="comment"># 文件识别输出示例</span></div>
+            <div>星期一-1-2: ·</div>
+            <div>星期一-3-4: 管理学原理</div>
+            <div>星期二-1-2: 高等数学</div>
+            <div>星期三-5-6: Python语言</div>
+            <div class="mt-2"><span class="comment"># 格式：星期-节次: 课程名（空课程用 · 表示）</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-grid" class="tab-content">
+        <div class="mb-1">
+          <p class="text-sm text-slate-600 mb-1">程序按表格坐标确定星期和节次，模型只负责清洗课程名，从根本上消除坐标偏移。</p>
+          <div class="code-block mb-1">
+            <div><span class="comment"># Excel网格识别</span></div>
+            <div><span class="comment"># 程序逻辑：</span></div>
+            <div><span class="comment"># 1. 读取Excel单元格坐标 (row, col)</span></div>
+            <div><span class="comment"># 2. 表头行(col) → 映射到星期</span></div>
+            <div><span class="comment"># 3. 数据行(row) → 映射到节次</span></div>
+            <div><span class="comment"># 4. 模型只需清洗 cell.value 中的课程名</span></div>
+            <div class="mt-2"><span class="comment"># 优势：坐标由程序确定，模型不参与定位，100%消除列偏移</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.3 关键工程决策 -->
+    <div class="reveal reveal-delay-2 glass-card rounded-3xl p-5">
+      <h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2">
+        <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-white text-xs">3.3</span>
+        关键工程决策
+        <span class="tag-pitfall ml-2">踩坑</span>
+      </h3>
+
+      <div class="gradient-border rounded-2xl p-6 mb-5">
+        <h4 class="font-bold text-slate-800 mb-1">从50秒超时到10秒响应 —— 一个Prompt格式的选择</h4>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl bg-red-50 border border-red-100">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-red-500 font-bold">❌</span>
+              <span class="font-semibold text-slate-800">JSON格式输出</span>
+            </div>
+            <div class="text-sm text-slate-600 space-y-1">
+              <p>• 调用时长约 <strong class="text-red-600">50秒</strong></p>
+              <p>• 云函数60秒超时限制下频繁触发 <code class="bg-red-100 px-1 rounded text-xs">ESOCKETTIMEDOUT</code></p>
+              <p>• 需容错解析非法JSON</p>
+              <p>• token量大，模型反复保证格式合法性</p>
+            </div>
+          </div>
+          <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-emerald-500 font-bold">✅</span>
+              <span class="font-semibold text-slate-800">纯文本格式输出</span>
+            </div>
+            <div class="text-sm text-slate-600 space-y-1">
+              <p>• 响应仅需约 <strong class="text-emerald-600">10秒</strong></p>
+              <p>• 稳定快速，无超时风险</p>
+              <p>• 程序用<strong>确定性规则</strong>解析</p>
+              <p>• token更少，生成更快</p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 p-4 rounded-xl bg-slate-50 text-sm text-slate-600">
+          <strong>排查过程：</strong>最初排查很久找不到超时原因，后来在网页端手动测试时发现，用自然语言询问让模型返回表格形式，响应仅需约10秒。分析原因：JSON输出token量大、模型需要反复保证格式合法性，而纯文本表格token更少、生成更快。最终将三个Prompt全部改为纯文本行输出。
+        </div>
+      </div>
+
+      <!-- 其他参数 -->
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-card rounded-xl p-4 text-center">
+          <div class="text-lg font-bold text-slate-800">0.2~0.3</div>
+          <div class="text-xs text-slate-500">temperature</div>
+          <div class="text-xs text-slate-400">低温度保证输出稳定</div>
+        </div>
+        <div class="glass-card rounded-xl p-4 text-center">
+          <div class="text-lg font-bold text-slate-800">4096</div>
+          <div class="text-xs text-slate-500">max_tokens</div>
+          <div class="text-xs text-slate-400">防止密集课表被截断</div>
+        </div>
+        <div class="glass-card rounded-xl p-4 text-center">
+          <div class="text-lg font-bold text-slate-800">false</div>
+          <div class="text-xs text-slate-500">stream</div>
+          <div class="text-xs text-slate-400">显式关闭流式传输</div>
+        </div>
+        <div class="glass-card rounded-xl p-4 text-center">
+          <div class="text-lg font-bold text-slate-800">60s</div>
+          <div class="text-xs text-slate-500">云函数超时</div>
+          <div class="text-xs text-slate-400">微信云开发上限</div>
+        </div>
+      </div>
+
+      <!-- 安全设计 -->
+      <div class="mt-6 p-4 rounded-xl bg-gradient-to-r from-accent/5 to-purple-500/5 border border-accent/10">
+        <div class="flex items-center gap-2 mb-1">
+          <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          <span class="font-semibold text-slate-800">安全设计</span>
+        </div>
+        <p class="text-sm text-slate-600">Kimi API Key 只存在云函数环境变量 <code class="bg-accent/10 px-1.5 py-0.5 rounded text-xs">MOONSHOT_API_KEY</code> 中，前端和小程序源码完全不接触 Key，杜绝反编译泄露。</p>
+      </div>
+
+      <!-- 实机截图：课表识别结果 -->
+      <div class="reveal mt-6 text-center">
+        <p class="text-sm text-slate-500 mb-3">课表识别成功后的实机效果</p>
+        <img src="./knowledge_base/assets/课表识别成功界面.jpg" alt="课表识别成功界面" class="rounded-2xl shadow-lg max-h-[320px] border border-slate-100 inline-block">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 版块四：智能排班引擎 ========== -->
+<section id="engine" class="relative z-10 py-14 px-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal text-center mb-10">
+      <span class="text-xs font-bold tracking-widest text-primary uppercase mb-1 block">Scheduling Engine</span>
+      <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-2">智能排班引擎</h2>
+      <p class="text-slate-500">约束满足 + 贪心 + 回溯，生成均衡无冲突排班表</p>
+    </div>
+
+    <!-- 4.1 算法策略 -->
+    <div class="reveal glass-card rounded-3xl p-5 mb-7">
+      <h3 class="font-bold text-slate-800 mb-5">算法策略：约束满足 + 贪心 + 回溯</h3>
+      <div class="space-y-2 text-sm text-slate-600">
+        <div class="flex items-start gap-3 p-3 rounded-xl bg-white/60">
+          <span class="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs flex-shrink-0 mt-0.5">1</span>
+          <span><strong>输入配置+成员课表</strong> → 构建值班日期列表</span>
+        </div>
+        <div class="flex items-start gap-3 p-3 rounded-xl bg-white/60">
+          <span class="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs flex-shrink-0 mt-0.5">2</span>
+          <span><strong>过滤已上传成员</strong> → 仅对有效成员进行排班</span>
+        </div>
+        <div class="flex items-start gap-3 p-3 rounded-xl bg-white/60">
+          <span class="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs flex-shrink-0 mt-0.5">3</span>
+          <span><strong>生成日期×班次Slot</strong> → 三重过滤候选人（课表冲突 / 空闲覆盖 / 手动屏蔽）</span>
+        </div>
+        <div class="flex items-start gap-3 p-3 rounded-xl bg-white/60">
+          <span class="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs flex-shrink-0 mt-0.5">4</span>
+          <span><strong>难排优先排序</strong> → 可用人数越少的班次越先排</span>
+        </div>
+        <div class="flex items-start gap-3 p-3 rounded-xl bg-white/60">
+          <span class="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs flex-shrink-0 mt-0.5">5</span>
+          <span><strong>贪心分配</strong> → 选择当前值班次数最少的成员</span>
+        </div>
+        <div class="flex items-start gap-3 p-3 rounded-xl bg-white/60">
+          <span class="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs flex-shrink-0 mt-0.5">6</span>
+          <span><strong>回溯腾位</strong> → 若当前无法填满，回溯调整已分配人员</span>
+        </div>
+        <div class="flex items-start gap-3 p-3 rounded-xl bg-white/60">
+          <span class="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs flex-shrink-0 mt-0.5">7</span>
+          <span><strong>循环排班复刻</strong> → 二次校验冲突 → 统计覆盖率 → 输出排班表+异常+统计</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4.2 均衡机制 -->
+    <div class="reveal reveal-delay-1 glass-card rounded-3xl p-5 mb-7">
+      <h3 class="font-bold text-slate-800 mb-1">均衡机制（双维控制）</h3>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/10">
+          <div class="text-sm font-semibold text-slate-800 mb-1">值班次数</div>
+          <div class="text-xs text-slate-500">统计每人被分配到多少个班次</div>
+        </div>
+        <div class="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/10">
+          <div class="text-sm font-semibold text-slate-800 mb-1">值班时长</div>
+          <div class="text-xs text-slate-500">不同班次的时长权重不同（如周末班次权重更高）</div>
+        </div>
+        <div class="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/10">
+          <div class="text-sm font-semibold text-slate-800 mb-1">人均上限</div>
+          <div class="text-xs text-slate-500">两个维度同时计数排序，人均岗位数上限做硬约束</div>
+        </div>
+      </div>
+      <p class="text-sm text-slate-500 mt-4">避免"能者多劳"失衡，优于单纯轮转。系统优先分配给当前<strong>双维计数最低</strong>的成员。</p>
+    </div>
+
+    <!-- 4.3 异常处理 -->
+    <div class="reveal reveal-delay-2 glass-card rounded-3xl p-5 mb-7">
+      <h3 class="font-bold text-slate-800 mb-1">异常处理</h3>
+      <div class="flex flex-wrap gap-3">
+        <span class="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600 text-xs font-bold border border-orange-100">understaffed 人手不足</span>
+        <span class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold border border-blue-100">overstaffed 超员</span>
+        <span class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-bold border border-red-100">conflict 课表冲突</span>
+        <span class="px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-600 text-xs font-bold border border-yellow-100">rulebreak 违反规则</span>
+      </div>
+    </div>
+
+
+  </div>
+</section>
+
+<!-- ========== 版块五：系统架构 ========== -->
+<section id="architecture" class="relative z-10 py-14 px-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal text-center mb-10">
+      <span class="text-xs font-bold tracking-widest text-primary uppercase mb-1 block">System Architecture</span>
+      <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-2">系统架构</h2>
+      <p class="text-slate-500">微信小程序 + 微信云开发 + Kimi大模型的全栈架构</p>
+    </div>
+
+    <!-- 架构图 -->
+    <div class="reveal space-y-3">
+      <!-- 前端层 -->
+      <div class="arch-layer frontend">
+        <div class="flex items-center gap-3 mb-1">
+          <div class="w-3 h-3 rounded-full bg-primary"></div>
+          <h3 class="font-bold text-slate-800">前端层 · 微信小程序原生</h3>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div class="glass-card rounded-xl p-3 text-center text-sm font-medium text-slate-700">首页</div>
+          <div class="glass-card rounded-xl p-3 text-center text-sm font-medium text-slate-700">排班</div>
+          <div class="glass-card rounded-xl p-3 text-center text-sm font-medium text-slate-700">成员</div>
+          <div class="glass-card rounded-xl p-3 text-center text-sm font-medium text-slate-700">上传识别</div>
+          <div class="glass-card rounded-xl p-3 text-center text-sm font-medium text-slate-700">我的</div>
+        </div>
+      </div>
+
+      <!-- 箭头 -->
+      <div class="flex justify-center"><div class="text-primary text-2xl">↓</div></div>
+
+      <!-- 云函数层 -->
+      <div class="arch-layer cloud">
+        <div class="flex items-center gap-3 mb-1">
+          <div class="w-3 h-3 rounded-full bg-secondary"></div>
+          <h3 class="font-bold text-slate-800">云函数层 · Node.js</h3>
+        </div>
+        <div class="grid md:grid-cols-3 gap-3">
+          <div class="glass-card rounded-xl p-4">
+            <div class="text-sm font-semibold text-slate-800 mb-1">login</div>
+            <div class="text-xs text-slate-500">身份获取（微信openId）</div>
+          </div>
+          <div class="glass-card rounded-xl p-4">
+            <div class="text-sm font-semibold text-slate-800 mb-1">orgdata</div>
+            <div class="text-xs text-slate-500">20个Action：组织/任务/成员/排班CRUD</div>
+          </div>
+          <div class="glass-card rounded-xl p-4">
+            <div class="text-sm font-semibold text-slate-800 mb-1">kimivision</div>
+            <div class="text-xs text-slate-500">3个Action：AI识别（test / recognize_images / recognize_file）</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 箭头 -->
+      <div class="flex justify-center"><div class="text-secondary text-2xl">↓</div></div>
+
+      <!-- 数据层 -->
+      <div class="arch-layer data">
+        <div class="flex items-center gap-3 mb-1">
+          <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+          <h3 class="font-bold text-slate-800">数据层 · 微信云开发</h3>
+        </div>
+        <div class="grid md:grid-cols-2 gap-3">
+          <div class="glass-card rounded-xl p-4">
+            <div class="text-sm font-semibold text-slate-800 mb-1">云数据库 · 5个集合</div>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-2 py-1 rounded-lg bg-amber-50 text-amber-600 text-xs">organizations</span>
+              <span class="px-2 py-1 rounded-lg bg-amber-50 text-amber-600 text-xs">members</span>
+              <span class="px-2 py-1 rounded-lg bg-amber-50 text-amber-600 text-xs">tasks</span>
+              <span class="px-2 py-1 rounded-lg bg-amber-50 text-amber-600 text-xs">configs</span>
+              <span class="px-2 py-1 rounded-lg bg-amber-50 text-amber-600 text-xs">schedules</span>
+            </div>
+          </div>
+          <div class="glass-card rounded-xl p-4">
+            <div class="text-sm font-semibold text-slate-800 mb-1">云存储</div>
+            <div class="text-xs text-slate-500">课表图片 / 文件 / 头像</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 箭头 -->
+      <div class="flex justify-center"><div class="text-accent text-2xl">↕</div></div>
+
+      <!-- AI层 -->
+      <div class="arch-layer ai">
+        <div class="flex items-center gap-3 mb-1">
+          <div class="w-3 h-3 rounded-full bg-accent"></div>
+          <h3 class="font-bold text-slate-800">AI层 · Kimi (Moonshot)</h3>
+        </div>
+        <div class="glass-card rounded-xl p-4 text-center">
+          <div class="text-lg font-bold gradient-text">Kimi k2.6</div>
+          <div class="text-xs text-slate-500 mt-1">视觉理解 + 文本解析</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数据模型说明 -->
+    <div class="reveal reveal-delay-2 mt-8 glass-card rounded-3xl p-5">
+      <h3 class="font-bold text-slate-800 mb-1">数据模型与版本管控</h3>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-sm text-slate-500 mb-1">嵌套结构：组织 → 任务 → 配置/排班</p>
+          <div class="code-block text-xs">
+            <div><span class="comment">// 组织 - 任务 - 配置/排班 嵌套</span></div>
+            <div>organizations {</div>
+            <div>  tasks [</div>
+            <div>    { configs, schedules }</div>
+            <div>  ]</div>
+            <div>}</div>
+          </div>
+        </div>
+        <div>
+          <p class="text-sm text-slate-500 mb-1">版本管控</p>
+          <div class="code-block text-xs">
+            <div><span class="comment">// API版本号</span></div>
+            <div><span class="keyword">const</span> API_VERSION = <span class="string">'20260826.4'</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 版块六：设计决策复盘 ========== -->
+<section id="decisions" class="relative z-10 py-14 px-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal text-center mb-10">
+      <span class="text-xs font-bold tracking-widest text-primary uppercase mb-1 block">Design Decisions</span>
+      <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-2">设计决策复盘</h2>
+      <p class="text-slate-500">6个关键决策，每个都是"问题 → 方案 → 效果"的完整闭环</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <!-- 决策1 -->
+      <div class="reveal glass-card rounded-2xl p-6">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">1</span>
+          <h3 class="font-bold text-slate-800">API Key 不落前端</h3>
+        </div>
+        <div class="space-y-2 text-sm">
+          <p><span class="text-red-500 font-semibold">问题：</span><span class="text-slate-600">小程序包可反编译，硬编码Key会泄露</span></p>
+          <p><span class="text-primary font-semibold">方案：</span><span class="text-slate-600">Key仅存云函数环境变量，前端间接调用</span></p>
+          <p><span class="text-emerald-500 font-semibold">效果：</span><span class="text-slate-600">源码零Key暴露</span></p>
+        </div>
+      </div>
+
+      <!-- 决策2 -->
+      <div class="reveal reveal-delay-1 glass-card rounded-2xl p-6 relative overflow-hidden">
+        <span class="tag-pitfall absolute top-4 right-4">踩坑</span>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">2</span>
+          <h3 class="font-bold text-slate-800">纯文本输出而非 JSON</h3>
+        </div>
+        <div class="space-y-2 text-sm">
+          <p><span class="text-red-500 font-semibold">问题：</span><span class="text-slate-600">JSON输出约50秒导致云函数超时</span></p>
+          <p><span class="text-primary font-semibold">方案：</span><span class="text-slate-600">改为纯文本行输出，程序确定性解析</span></p>
+          <p><span class="text-emerald-500 font-semibold">效果：</span><span class="text-slate-600">响应降至10秒，且无需容错非法JSON</span></p>
+        </div>
+      </div>
+
+      <!-- 决策3 -->
+      <div class="reveal glass-card rounded-2xl p-6">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">3</span>
+          <h3 class="font-bold text-slate-800">网格转录对抗列偏移</h3>
+        </div>
+        <div class="space-y-2 text-sm">
+          <p><span class="text-red-500 font-semibold">问题：</span><span class="text-slate-600">图片识别"数格子"容易星期列错位</span></p>
+          <p><span class="text-primary font-semibold">方案：</span><span class="text-slate-600">按表头文字和行标签"读文字"，Excel程序定位坐标</span></p>
+          <p><span class="text-emerald-500 font-semibold">效果：</span><span class="text-slate-600">根本消除偏移</span></p>
+        </div>
+      </div>
+
+      <!-- 决策4 -->
+      <div class="reveal reveal-delay-1 glass-card rounded-2xl p-6">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">4</span>
+          <h3 class="font-bold text-slate-800">空结果显式报错</h3>
+        </div>
+        <div class="space-y-2 text-sm">
+          <p><span class="text-red-500 font-semibold">问题：</span><span class="text-slate-600">识别成功但0节课时静默返回空表</span></p>
+          <p><span class="text-primary font-semibold">方案：</span><span class="text-slate-600">统一0课程校验，返回EMPTY_RESULT</span></p>
+          <p><span class="text-emerald-500 font-semibold">效果：</span><span class="text-slate-600">杜绝静默丢数据</span></p>
+        </div>
+      </div>
+
+      <!-- 决策5 -->
+      <div class="reveal glass-card rounded-2xl p-6">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">5</span>
+          <h3 class="font-bold text-slate-800">双维均衡排班</h3>
+        </div>
+        <div class="space-y-2 text-sm">
+          <p><span class="text-red-500 font-semibold">问题：</span><span class="text-slate-600">单按次数轮转导致时长不均</span></p>
+          <p><span class="text-primary font-semibold">方案：</span><span class="text-slate-600">次数+时长双计数，人均上限硬约束</span></p>
+          <p><span class="text-emerald-500 font-semibold">效果：</span><span class="text-slate-600">岗位大致均分</span></p>
+        </div>
+      </div>
+
+      <!-- 决策6 -->
+      <div class="reveal reveal-delay-1 glass-card rounded-2xl p-6">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">6</span>
+          <h3 class="font-bold text-slate-800">游客数据本地隔离</h3>
+        </div>
+        <div class="space-y-2 text-sm">
+          <p><span class="text-red-500 font-semibold">问题：</span><span class="text-slate-600">游客体验与数据上云需平衡</span></p>
+          <p><span class="text-primary font-semibold">方案：</span><span class="text-slate-600">游客数据仅本地，云端入口硬拦截</span></p>
+          <p><span class="text-emerald-500 font-semibold">效果：</span><span class="text-slate-600">机制保证不登录不上云</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 版块七：成果与总结 ========== -->
+<section id="result" class="relative z-10 py-14 px-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal text-center mb-10">
+      <span class="text-xs font-bold tracking-widest text-primary uppercase mb-1 block">Results</span>
+      <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-2">成果与总结</h2>
+    </div>
+
+    <!-- 7.1 成果数据 -->
+    <div class="reveal glass-card rounded-3xl p-5 mb-7">
+      <h3 class="font-bold text-slate-800 mb-5">核心成果数据</h3>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/10">
+          <div class="text-4xl font-black gradient-text mb-1">24<span class="text-xl">倍</span></div>
+          <div class="text-sm font-semibold text-slate-700">排班效率提升</div>
+          <div class="text-xs text-slate-400 mt-1">4小时 → 10分钟</div>
+          <div class="text-xs text-slate-400">（前提是成员全部配合上传课表）</div>
+        </div>
+        <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-accent/5 to-purple-500/5 border border-accent/10">
+          <div class="text-4xl font-black gradient-text mb-1">5<span class="text-xl">种</span></div>
+          <div class="text-sm font-semibold text-slate-700">课表导入格式</div>
+          <div class="text-xs text-slate-400 mt-1">拍照 / Excel / CSV / PDF / 手动录入</div>
+        </div>
+        <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10">
+          <div class="text-4xl font-black gradient-text mb-1">3<span class="text-xl">步</span></div>
+          <div class="text-sm font-semibold text-slate-700">极简操作流程</div>
+          <div class="text-xs text-slate-400 mt-1">上传课表 → AI识别 → 一键排班</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7.2 能力总结 -->
+    <div class="reveal reveal-delay-1 glass-card rounded-3xl p-5 mb-7">
+      <h3 class="font-bold text-slate-800 mb-5">独立开发能力总结</h3>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-2xl bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/10">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white mb-1">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <h4 class="font-bold text-slate-800 mb-1">全栈交付</h4>
+          <p class="text-sm text-slate-600">10天独立完成产品设计 → 前端 → 云函数 → AI接入 → 上线</p>
+        </div>
+        <div class="p-5 rounded-2xl bg-gradient-to-br from-accent/5 to-purple-500/5 border border-accent/10">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-white mb-1">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          </div>
+          <h4 class="font-bold text-slate-800 mb-1">AI工程化</h4>
+          <p class="text-sm text-slate-600">不仅是调API，能针对模型特性设计Prompt格式、做超时优化、输出解析、错误兜底</p>
+        </div>
+        <div class="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white mb-1">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+          </div>
+          <h4 class="font-bold text-slate-800 mb-1">问题驱动</h4>
+          <p class="text-sm text-slate-600">从50秒超时到10秒响应的排查过程，体现定位问题、验证假设、快速迭代的工程能力</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7.3 联系方式 -->
+    <div class="reveal reveal-delay-2 text-center">
+      <div class="glass-card rounded-3xl p-6 inline-block w-full max-w-lg">
+        <h3 class="font-bold text-slate-800 mb-1">扫码体验小程序</h3>
+        <img src="./knowledge_base/assets/小程序二维码.jpg" alt="星轨成班小程序码" class="w-40 h-40 mx-auto mb-1 rounded-2xl shadow-lg">
+        <p class="text-sm text-slate-500 mb-1">微信搜索「星轨成班」</p>
+        <div class="flex justify-center gap-4 text-sm text-slate-500">
+          <span class="flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            736053336@qq.com
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 二维码弹窗 ========== -->
+<div id="qr-modal" class="qr-modal" onclick="closeQR(event)">
+  <div class="qr-modal-content" onclick="event.stopPropagation()">
+    <img src="./knowledge_base/assets/小程序二维码.jpg" alt="星轨成班小程序码" class="w-48 h-48 mx-auto mb-1 rounded-2xl shadow-lg">
+    <p class="text-sm font-semibold text-slate-800">微信扫码体验</p>
+    <p class="text-xs text-slate-400 mt-1">搜索「星轨成班」</p>
+    <button onclick="closeQR()" class="mt-4 px-6 py-2 rounded-xl bg-slate-100 text-slate-600 text-sm font-medium hover:bg-slate-200 transition-colors">关闭</button>
+  </div>
+</div>
+
+<!-- ========== JS ========== -->
+<script>
+// ===================== 滚动动画 =====================
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add('visible');
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ===================== 导航栏滚动效果 =====================
+window.addEventListener('scroll', () => {
+  const nav = document.getElementById('navbar');
+  if (window.scrollY > 50) {
+    nav.classList.add('nav-glass');
+  } else {
+    nav.classList.remove('nav-glass');
+  }
+});
+
+// ===================== 移动端菜单 =====================
+document.getElementById('mobile-btn').addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.toggle('open');
+});
+document.querySelectorAll('#mobile-menu a').forEach(a => {
+  a.addEventListener('click', () => document.getElementById('mobile-menu').classList.remove('open'));
+});
+
+// ===================== Tab切换 =====================
+function switchTab(btn, tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+// ===================== 流程图节点展开 =====================
+function toggleDetail(node) {
+  const detail = node.querySelector('.flow-detail');
+  if (detail) detail.classList.toggle('expanded');
+}
+
+// ===================== 二维码弹窗 =====================
+function openQR() {
+  document.getElementById('qr-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeQR(e) {
+  if (!e || e.target === document.getElementById('qr-modal')) {
+    document.getElementById('qr-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+
+</script>
+</body>
+</html>

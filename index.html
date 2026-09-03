@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>陈宇翔 - 项目管理硕士 | AI产品探索者</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;900&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#0065fd',
+            'primary-light': '#3b82f6',
+            secondary: '#0ea5e9',
+            accent: '#7c3aed',
+          },
+          fontFamily: {
+            sans: ['Manrope', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+            display: ['Manrope', 'Noto Sans SC', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Manrope', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #f5f8ff;
+      color: #1e293b;
+      overflow-x: hidden;
+      line-height: 1.7;
+    }
+    /* Beach background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=30') center/cover no-repeat;
+      opacity: 0.07;
+      z-index: 0;
+      pointer-events: none;
+    }
+    /* Floating deco orbs */
+    .deco-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    @keyframes floatOrb {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(20px, -30px) scale(1.05); }
+      66% { transform: translate(-15px, 15px) scale(0.95); }
+    }
+    .deco-orb { animation: floatOrb 10s ease-in-out infinite; }
+    .deco-orb-delay { animation-delay: -3s; }
+    .deco-orb-delay2 { animation-delay: -6s; }
+
+    /* Glass */
+    .glass {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+    .glass-strong {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(30px) saturate(1.5);
+      -webkit-backdrop-filter: blur(30px) saturate(1.5);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(16px) saturate(1.3);
+      -webkit-backdrop-filter: blur(16px) saturate(1.3);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      box-shadow: 0 4px 24px rgba(0, 101, 253, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    /* Particle canvas */
+    #particles-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+    /* Nav */
+    .nav-glass {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 1px 20px rgba(0, 101, 253, 0.05);
+    }
+    /* Animations */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .float-anim { animation: float 4s ease-in-out infinite; }
+    .float-anim-delay { animation-delay: -1.3s; }
+    .float-anim-delay2 { animation-delay: -2.6s; }
+
+    /* Light sweep on hover */
+    .light-sweep { position: relative; overflow: hidden; }
+    .light-sweep::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s;
+    }
+    .light-sweep:hover::after { left: 100%; }
+
+    /* Timeline */
+    .timeline-line {
+      position: absolute;
+      left: 24px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, #0065fd, #0ea5e9, transparent);
+    }
+    @media (min-width: 768px) {
+      .timeline-line { left: 50%; transform: translateX(-50%); }
+    }
+
+    /* Skill tag */
+    .skill-tag, .skill-tag-accent, .skill-tag-green, .skill-tag-amber {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: 1px solid;
+    }
+    .skill-tag {
+      background: rgba(0, 101, 253, 0.08);
+      color: #0065fd;
+      border-color: rgba(0, 101, 253, 0.12);
+    }
+    .skill-tag-accent {
+      background: rgba(124, 58, 237, 0.08);
+      color: #7c3aed;
+      border-color: rgba(124, 58, 237, 0.12);
+    }
+    .skill-tag-green {
+      background: rgba(16, 185, 129, 0.08);
+      color: #059669;
+      border-color: rgba(16, 185, 129, 0.12);
+    }
+    .skill-tag-amber {
+      background: rgba(245, 158, 11, 0.08);
+      color: #d97706;
+      border-color: rgba(245, 158, 11, 0.12);
+    }
+  </style>
+</head>
+<body class="antialiased">
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- Nav -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+    <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+      <a href="#hero" class="font-display font-bold text-lg text-slate-800 tracking-tight">陈宇翔</a>
+      <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+        <a href="#about" class="hover:text-primary transition-colors">关于</a>
+        <a href="#education" class="hover:text-primary transition-colors">教育</a>
+        <a href="#experience" class="hover:text-primary transition-colors">经历</a>
+        <a href="#project" class="hover:text-primary transition-colors">项目</a>
+        <a href="#skills" class="hover:text-primary transition-colors">技能</a>
+        <a href="#contact" class="px-4 py-2 rounded-full bg-gradient-to-r from-primary to-secondary text-white text-xs font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all">联系我</a>
+      </div>
+      <button id="mobile-menu-btn" class="md:hidden p-2 text-slate-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+    <div id="mobile-menu" class="hidden md:hidden glass-strong mx-4 rounded-2xl p-4 mb-4">
+      <div class="flex flex-col gap-3 text-sm font-medium text-slate-600">
+        <a href="#about" class="py-2 px-3 rounded-lg hover:bg-primary/5">关于</a>
+        <a href="#education" class="py-2 px-3 rounded-lg hover:bg-primary/5">教育</a>
+        <a href="#experience" class="py-2 px-3 rounded-lg hover:bg-primary/5">经历</a>
+        <a href="#project" class="py-2 px-3 rounded-lg hover:bg-primary/5">项目</a>
+        <a href="#skills" class="py-2 px-3 rounded-lg hover:bg-primary/5">技能</a>
+        <a href="#contact" class="py-2 px-3 rounded-lg bg-gradient-to-r from-primary to-secondary text-white text-center">联系我</a>
+      </div>
+    </div>
+  </nav>
+  <!-- Hero -->
+  <section id="hero" class="relative z-10 flex items-center justify-center pt-20 pb-10 px-6 overflow-hidden">
+    <div class="deco-orb w-80 h-80 bg-gradient-to-br from-primary/20 to-secondary/10 -top-20 -left-20"></div>
+    <div class="deco-orb deco-orb-delay w-64 h-64 bg-gradient-to-br from-accent/15 to-primary/10 top-1/3 -right-20"></div>
+    <div class="deco-orb deco-orb-delay2 w-72 h-72 bg-gradient-to-br from-secondary/15 to-cyan-300/10 bottom-20 left-1/4"></div>
+
+    <div class="max-w-5xl mx-auto w-full">
+      <div class="grid lg:grid-cols-2 gap-10 items-center">
+        <div class="order-2 lg:order-1 text-center lg:text-left">
+          <div class="reveal">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm text-slate-600 mb-6 mt-5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              求职中 — 项目管理 / AI应用 / AI产品经理
+            </div>
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-tight mb-4">
+              陈宇翔
+            </h1>
+            <div class="text-xl md:text-2xl font-semibold text-primary mb-6 min-h-[2rem] md:min-h-[2.5rem]" id="typewriter"></div>
+            <p class="text-slate-500 text-base leading-relaxed mb-8 max-w-3xl mx-auto lg:mx-0">
+              腾讯IEG双项目实习，熟悉新项目研发与版本迭代流程。独立开发上线智能排班小程序，探索AI与项目管理的交叉融合。
+            </p>
+            <div class="flex flex-wrap gap-3 justify-center lg:justify-start mb-8">
+              <a href="#project" class="px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-semibold text-sm hover:shadow-xl hover:shadow-primary/30 transition-all light-sweep">
+                查看项目
+              </a>
+              <a href="./knowledge_base/resume/陈宇翔简历.pdf" download class="px-6 py-3 rounded-xl glass text-slate-700 font-semibold text-sm hover:bg-white/80 transition-all">
+                下载简历
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="order-1 lg:order-2 flex justify-center">
+          <div class="reveal reveal-delay-2 relative">
+            <div class="w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden border-4 border-white shadow-2xl shadow-primary/20 relative z-10">
+              <img src="./knowledge_base/assets/个人正装照.jpg" alt="陈宇翔" class="w-full h-full object-cover">
+            </div>
+            <div class="absolute -inset-3 rounded-full bg-gradient-to-r from-primary/30 via-secondary/20 to-accent/30 blur-xl -z-0"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12">
+        <div class="reveal glass-card rounded-2xl p-4 text-center float-anim">
+          <div class="text-2xl font-black text-primary mb-1">2段</div>
+          <div class="text-xs text-slate-500">腾讯IEG项目实习</div>
+        </div>
+        <div class="reveal reveal-delay-1 glass-card rounded-2xl p-4 text-center float-anim float-anim-delay">
+          <div class="text-2xl font-black text-primary mb-1">1款</div>
+          <div class="text-xs text-slate-500">独立发布微信小程序</div>
+        </div>
+        <div class="reveal reveal-delay-2 glass-card rounded-2xl p-4 text-center float-anim float-anim-delay2">
+          <div class="text-2xl font-black text-primary mb-1">2项</div>
+          <div class="text-xs text-slate-500">国家级竞赛获奖</div>
+        </div>
+        <div class="reveal reveal-delay-3 glass-card rounded-2xl p-4 text-center float-anim">
+          <div class="text-2xl font-black text-primary mb-1">5年</div>
+          <div class="text-xs text-slate-500">工程项目管理</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section id="about" class="relative z-10 py-10 px-6 overflow-hidden">
+    <div class="deco-orb w-64 h-64 bg-gradient-to-br from-primary/10 to-secondary/5 top-0 right-0"></div>
+    <div class="max-w-5xl mx-auto">
+      <div class="reveal text-center mb-10">
+        <span class="text-xs font-bold tracking-widest text-primary uppercase mb-2 block">About</span>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-3">关于我</h2>
+        <p class="text-slate-500">项目管理背景 × AI领域探索</p>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-5 items-start">
+        <div class="reveal">
+          <div class="glass-card rounded-3xl p-6">
+            <p class="text-slate-600 text-sm leading-relaxed">
+              拥有<strong class="text-slate-800">游戏研发项目管理实战经验</strong>，具备跨团队协同与流程规范化能力，精通需求全流程管控、版本迭代跟进。注重风险预警，熟练运用 TAPD 等工具保障研发交付时效与质量，助力项目成功发布。曾获多项国家级竞赛奖项，借助AI工具完成产品从0到1发布。
+            </p>
+          </div>
+        </div>
+        <div class="reveal reveal-delay-1">
+          <div class="glass-card rounded-2xl p-5">
+            <h3 class="font-bold text-slate-800 mb-3 text-sm">技能标签</h3>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="skill-tag" style="padding:6px 12px;font-size:12px">Prompt Engineering</span>
+              <span class="skill-tag" style="padding:6px 12px;font-size:12px">敏捷项目管理</span>
+              <span class="skill-tag" style="padding:6px 12px;font-size:12px">进度管理</span>
+              <span class="skill-tag" style="padding:6px 12px;font-size:12px">数据分析</span>
+              <span class="skill-tag-accent" style="padding:6px 12px;font-size:12px">AI工具应用</span>
+              <span class="skill-tag-accent" style="padding:6px 12px;font-size:12px">API调用</span>
+              <span class="skill-tag-green" style="padding:6px 12px;font-size:12px">微信小程序开发</span>
+            </div>
+          </div>
+        </div>
+        <div class="reveal reveal-delay-2">
+          <div class="glass-card rounded-2xl p-5">
+            <h3 class="font-bold text-slate-800 mb-3 text-sm">核心优势</h3>
+            <ul class="space-y-2 text-sm text-slate-600">
+              <li class="flex items-start gap-2"><span class="text-primary mt-0.5">▸</span><span>具备软件研发项目管理经验，主动识别风险，把控开发进度与节点交付</span></li>
+              <li class="flex items-start gap-2"><span class="text-primary mt-0.5">▸</span><span>具备AI产品落地能力，独立完成全栈开发</span></li>
+              <li class="flex items-start gap-2"><span class="text-primary mt-0.5">▸</span><span>熟悉敏捷流程与跨团队协作机制</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- Education -->
+  <section id="education" class="relative z-10 py-10 px-6 overflow-hidden">
+    <div class="deco-orb w-64 h-64 bg-gradient-to-br from-secondary/10 to-cyan-300/5 bottom-0 left-0"></div>
+    <div class="max-w-4xl mx-auto">
+      <div class="reveal text-center mb-10">
+        <span class="text-xs font-bold tracking-widest text-primary uppercase mb-2 block">Education</span>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-3">教育背景</h2>
+        <p class="text-slate-500">项目管理硕士在读，双学位本科</p>
+      </div>
+
+      <div class="space-y-5">
+        <!-- 硕士 -->
+        <div class="reveal glass-card rounded-3xl p-6 md:p-8">
+          <div class="flex flex-col md:flex-row md:items-start gap-5">
+            <div class="flex-shrink-0">
+              <div class="w-16 h-16 rounded-2xl bg-white shadow-md flex items-center justify-center overflow-hidden">
+                <img src="./knowledge_base/assets/西南财经大学logo.png" alt="西南财经大学" class="w-12 h-12 object-contain" onerror="this.style.display='none';this.parentElement.innerHTML='<span class=\'text-lg font-bold text-primary\'>西财</span>'">
+              </div>
+            </div>
+            <div class="flex-1">
+              <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
+                <h3 class="text-xl font-bold text-slate-900">西南财经大学</h3>
+                <span class="text-sm text-slate-400">2025.09 — 至今</span>
+              </div>
+              <p class="text-primary font-semibold mb-2">项目管理硕士（全日制）</p>
+              <p class="text-sm text-slate-500 mb-3">GPA: 3.92 / 5.0</p>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs px-3 py-1 rounded-full bg-primary/5 text-primary">Python语言及应用</span>
+                <span class="text-xs px-3 py-1 rounded-full bg-primary/5 text-primary">项目管理学</span>
+                <span class="text-xs px-3 py-1 rounded-full bg-primary/5 text-primary">金融科技基础与实践</span>
+                <span class="text-xs px-3 py-1 rounded-full bg-primary/5 text-primary">数据挖掘</span>
+                <span class="text-xs px-3 py-1 rounded-full bg-primary/5 text-primary">IT与项目管理软件应用</span>
+                <span class="text-xs px-3 py-1 rounded-full bg-primary/5 text-primary">工程管理信息系统</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 本科 -->
+        <div class="reveal reveal-delay-1 glass-card rounded-3xl p-6 md:p-8">
+          <div class="flex flex-col md:flex-row md:items-start gap-5">
+            <div class="flex-shrink-0">
+              <div class="w-16 h-16 rounded-2xl bg-white shadow-md flex items-center justify-center overflow-hidden">
+                <img src="./knowledge_base/assets/西南科技大学logo.png" alt="西南科技大学" class="w-12 h-12 object-contain" onerror="this.style.display='none';this.parentElement.innerHTML='<span class=\'text-lg font-bold text-primary\'>西南科大</span>'">
+              </div>
+            </div>
+            <div class="flex-1">
+              <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
+                <h3 class="text-xl font-bold text-slate-900">西南科技大学</h3>
+                <span class="text-sm text-slate-400">2016.09 — 2020.06</span>
+              </div>
+              <p class="text-primary font-semibold mb-2">土木工程 &amp; 工商管理（双学位）</p>
+              <p class="text-sm text-slate-500 mb-3">工学与管理学双学士学位</p>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs px-3 py-1 rounded-full bg-primary/5 text-primary">工程力学</span>
+                <span class="text-xs px-3 py-1 rounded-full bg-primary/5 text-primary">高等数学</span>
+                <span class="text-xs px-3 py-1 rounded-full bg-primary/5 text-primary">项目管理</span>
+                <span class="text-xs px-3 py-1 rounded-full bg-primary/5 text-primary">管理运筹学</span>
+                <span class="text-xs px-3 py-1 rounded-full bg-primary/5 text-primary">西方经济学</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 荣誉 -->
+        <div class="reveal reveal-delay-2">
+          <div class="glass-card rounded-2xl p-5">
+            <h3 class="font-bold text-slate-800 mb-3 text-sm">校园经历与荣誉</h3>
+            <div class="space-y-2 text-sm text-slate-600">
+              <div class="flex items-start gap-2">
+                <span class="text-primary mt-0.5">🏆</span>
+                <span>2026（第十一届）高等院校项目管理大赛暨国际项目管理锦标赛中国区选拔赛研究生组三等奖</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-primary mt-0.5">🏆</span>
+                <span>2026年全国企业竞争模拟大赛企业决策赛道研究生组三等奖</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-primary mt-0.5">🏆</span>
+                <span>西南财经大学硕士研究生二等学业奖学金</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-primary mt-0.5">🏆</span>
+                <span>西南科技大学土建学院学生会体育部部长</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-primary mt-0.5">🏆</span>
+                <span>西南财经大学研究生会综合服务部干事</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Experience -->
+  <section id="experience" class="relative z-10 py-10 px-6 overflow-hidden">
+    <div class="deco-orb w-64 h-64 bg-gradient-to-br from-accent/10 to-primary/5 top-20 right-0"></div>
+    <div class="max-w-4xl mx-auto">
+      <div class="reveal text-center mb-10">
+        <span class="text-xs font-bold tracking-widest text-primary uppercase mb-2 block">Experience</span>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-3">工作与实习</h2>
+        <p class="text-slate-500">游戏项目研发项目管理</p>
+      </div>
+
+      <div class="relative">
+        <div class="timeline-line"></div>
+
+        <!-- 腾讯实习2 -->
+        <div class="reveal relative pl-16 md:pl-0 md:grid md:grid-cols-2 md:gap-8 mb-10">
+          <div class="md:text-right md:pr-8">
+            <div class="glass-card rounded-2xl p-5 inline-block md:text-left">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-lg">🎮</span>
+                <span class="font-bold text-slate-900">腾讯 IEG — 魂斗罗项目组</span>
+              </div>
+              <p class="text-primary font-semibold text-sm mb-1">研发项目管理实习生</p>
+              <p class="text-xs text-slate-400 mb-3">2026.03 — 2026.06</p>
+              <ul class="text-sm text-slate-600 space-y-1">
+                <li class="flex items-start gap-1.5"><span class="text-primary mt-0.5">▸</span><span>版本需求管理：跟进3个版本迭代，每版本管理20+需求节点，协调5名开发+5名策划，需求节点按时完成率&gt;95%</span></li>
+                <li class="flex items-start gap-1.5"><span class="text-primary mt-0.5">▸</span><span>流程规范化：协助制定需求管理SOP，规范需求提出、评审、排期、验收全流程；建立风险预警机制，提前2-3天识别需求变更/资源冲突风险</span></li>
+                <li class="flex items-start gap-1.5"><span class="text-primary mt-0.5">▸</span><span>美术项目管理：整理企业微盘美术资产与版本资源，协助归档及规范化管理；组织场景原画需求宣讲与对接，协助明确需求方向、交付标准及时间节点，提升跨团队沟通效率</span></li>
+                <li class="flex items-start gap-1.5"><span class="text-primary mt-0.5">▸</span><span>质量保障：协助bug监控与修复进度跟进，及时上报高风险问题并协助推动修复，保障版本按时按质交付</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="hidden md:block"></div>
+          <div class="absolute left-4 md:left-1/2 md:-translate-x-1/2 top-5 w-5 h-5 rounded-full bg-gradient-to-r from-primary to-secondary border-4 border-white shadow-lg shadow-primary/20 z-10"></div>
+        </div>
+
+        <!-- 腾讯实习1 -->
+        <div class="reveal reveal-delay-1 relative pl-16 md:pl-0 md:grid md:grid-cols-2 md:gap-8 mb-10">
+          <div class="hidden md:block"></div>
+          <div class="md:pl-8">
+            <div class="glass-card rounded-2xl p-5">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-lg">🎮</span>
+                <span class="font-bold text-slate-900">腾讯 IEG — SP项目组</span>
+              </div>
+              <p class="text-primary font-semibold text-sm mb-1">研发项目管理实习生</p>
+              <p class="text-xs text-slate-400 mb-3">2026.01 — 2026.03</p>
+              <ul class="text-sm text-slate-600 space-y-1">
+                <li class="flex items-start gap-1.5"><span class="text-primary mt-0.5">▸</span><span>使用TAPD等工具进行工单派发、需求流转与进度同步</span></li>
+                <li class="flex items-start gap-1.5"><span class="text-primary mt-0.5">▸</span><span>编写项目管理实习生日常工作SOP，明确工作标准、沟通机制、工具使用规范</span></li>
+                <li class="flex items-start gap-1.5"><span class="text-primary mt-0.5">▸</span><span>负责战斗管线研发进度跟踪，针对需求变更及时同步信息并识别延期风险，保障研发流程稳步推进，助力项目成功上线</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="absolute left-4 md:left-1/2 md:-translate-x-1/2 top-5 w-5 h-5 rounded-full bg-gradient-to-r from-primary to-secondary border-4 border-white shadow-lg shadow-primary/20 z-10"></div>
+        </div>
+
+        <!-- 中建八局 -->
+        <div class="reveal reveal-delay-2 relative pl-16 md:pl-0 md:grid md:grid-cols-2 md:gap-8">
+          <div class="md:text-right md:pr-8">
+            <div class="glass-card rounded-2xl p-5 inline-block md:text-left">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-lg">🏗️</span>
+                <span class="font-bold text-slate-900">中建八局第二建设有限公司</span>
+              </div>
+              <p class="text-primary font-semibold text-sm mb-1">项目商务经理</p>
+              <p class="text-xs text-slate-400 mb-3">2020.07 — 2025.08</p>
+              <p class="text-xs text-slate-500 mb-2">先后任职项目专业工程师、项目成本负责人，经历3段完整工程项目</p>
+              <ul class="text-sm text-slate-600 space-y-1">
+                <li class="flex items-start gap-1.5"><span class="text-primary mt-0.5">▸</span><span>进度管理：制定并跟进周/月计划，梳理施工任务依赖关系，组织进度销项会，协调材料、机械等资源解决现场卡点，保障项目按期推进</span></li>
+                <li class="flex items-start gap-1.5"><span class="text-primary mt-0.5">▸</span><span>成本管理：结合招采及工程量清单进行成本测算与风险识别，推进变更管理及结算流程，参与设计变更优化与成本控制</span></li>
+                <li class="flex items-start gap-1.5"><span class="text-primary mt-0.5">▸</span><span>需求对接与协调：负责业主需求对接、变更测算及结算办理，协调内部团队与分包单位资源，处理施工过程中的工序冲突及费用争议</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="hidden md:block"></div>
+          <div class="absolute left-4 md:left-1/2 md:-translate-x-1/2 top-5 w-5 h-5 rounded-full bg-gradient-to-r from-primary to-secondary border-4 border-white shadow-lg shadow-primary/20 z-10"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- Project -->
+  <section id="project" class="relative z-10 py-10 px-6 overflow-hidden">
+    <div class="deco-orb w-96 h-96 bg-gradient-to-br from-purple-400/10 to-accent/5 -top-10 -left-20 float-deco"></div>
+    <div class="deco-orb w-72 h-72 bg-gradient-to-br from-secondary/10 to-cyan-300/5 bottom-20 -right-10 float-deco-delay"></div>
+    <div class="max-w-5xl mx-auto">
+      <div class="reveal text-center mb-10">
+        <span class="text-xs font-bold tracking-widest text-primary uppercase mb-2 block">Featured Project</span>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-3">项目展示</h2>
+        <p class="text-slate-500">从痛点出发，用AI与算法解决真实问题，独立完成从需求分析到上线运营的全流程。</p>
+      </div>
+
+      <!-- 星轨成班 -->
+      <div class="reveal glass-card rounded-3xl p-6 md:p-8 mb-6">
+        <div class="flex flex-wrap gap-2 mb-4">
+          <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">已上线 v1.0</span>
+          <span class="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">微信小程序</span>
+          <span class="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold">AI大模型</span>
+          <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">独立开发</span>
+        </div>
+
+        <div class="grid lg:grid-cols-5 gap-6 items-start">
+          <div class="lg:col-span-3">
+            <h3 class="text-2xl font-black text-slate-900 mb-2">星轨成班</h3>
+            <p class="text-primary font-semibold mb-3">校园值班自动排班小程序 —— AI课表识别 + 约束排班引擎 + 组织协作管理</p>
+
+            <!-- 痛点描述 -->
+            <div class="mb-4 p-4 rounded-xl bg-red-50/50 border border-red-100/60">
+              <h4 class="text-sm font-bold text-red-700 mb-2">解决痛点</h4>
+              <ul class="space-y-1.5 text-sm text-slate-600">
+                <li class="flex items-start gap-2"><span class="text-red-500 mt-0.5">▸</span><span><strong class="text-slate-800">课表收集繁琐</strong>：成员课表格式各异（截图/Excel/手写），管理员需逐个催收、核对、汇总</span></li>
+                <li class="flex items-start gap-2"><span class="text-red-500 mt-0.5">▸</span><span><strong class="text-slate-800">人工排班易冲突</strong>：人工核对空闲时间容易漏掉上课时间重叠、连续值班等问题</span></li>
+                <li class="flex items-start gap-2"><span class="text-red-500 mt-0.5">▸</span><span><strong class="text-slate-800">排班耗时长</strong>：一个30人组织的月度排班，管理员平均需要4小时</span></li>
+              </ul>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="text-sm font-bold text-slate-800 mb-2">核心功能</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="flex items-start gap-3 p-3 rounded-xl bg-white/50 border border-white/60">
+                  <span class="text-lg">📸</span>
+                  <div>
+                    <div class="text-sm font-semibold text-slate-800">AI课表识别</div>
+                    <div class="text-xs text-slate-500">拍照/截图自动识别，支持Excel(.xlsx)、CSV、PDF、图片等多种格式</div>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 rounded-xl bg-white/50 border border-white/60">
+                  <span class="text-lg">⚙️</span>
+                  <div>
+                    <div class="text-sm font-semibold text-slate-800">智能排班</div>
+                    <div class="text-xs text-slate-500">约束满足+贪心+回溯，兼顾排得下与分得均</div>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 rounded-xl bg-white/50 border border-white/60">
+                  <span class="text-lg">🔄</span>
+                  <div>
+                    <div class="text-sm font-semibold text-slate-800">循环排班</div>
+                    <div class="text-xs text-slate-500">一次配置，自动生成多周期排班</div>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 rounded-xl bg-white/50 border border-white/60">
+                  <span class="text-lg">👥</span>
+                  <div>
+                    <div class="text-sm font-semibold text-slate-800">组织协作</div>
+                    <div class="text-xs text-slate-500">邀请码一键拉群，成员课表实时同步云端，支持10~50人多人在线协作</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="text-sm font-bold text-slate-800 mb-2">技术栈</h4>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px] whitespace-nowrap">微信小程序原生</span>
+                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px] whitespace-nowrap">微信云开发</span>
+                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px] whitespace-nowrap">Node.js</span>
+                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px] whitespace-nowrap">Kimi k2.6</span>
+                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px] whitespace-nowrap">排班引擎</span>
+                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px] whitespace-nowrap">约束满足+贪心+回溯</span>
+              </div>
+            </div>
+
+            <div class="mb-4 p-4 rounded-xl bg-gradient-to-r from-accent/5 to-purple-500/5 border border-accent/10">
+              <h4 class="text-sm font-bold text-slate-800 mb-2">我的角色</h4>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                <strong class="text-slate-800">独立开发者（全栈）。</strong>从需求分析、PRD撰写、UI/UX设计、前端开发、云函数后端、AI接入到测试上线，全部独立完成。集成Kimi k2.6大模型API做课表视觉识别，针对模型特性设计Prompt格式并完成50s→10s响应优化；基于微信云开发实现多用户实时数据同步与组织隔离；基于约束满足+贪心+回溯算法实现排班引擎，兼顾「排得下」与「分得均」。
+              </p>
+            </div>
+
+            <!-- 演示视频 -->
+            <div class="mb-4">
+              <h4 class="text-sm font-bold text-slate-800 mb-2">功能演示</h4>
+              <div class="relative rounded-2xl overflow-hidden bg-slate-900 aspect-video group cursor-pointer" onclick="const v=document.getElementById('demo-video');const p=document.getElementById('video-placeholder');v.play();p.style.display='none';">
+                <video id="demo-video" class="w-full h-full object-cover" poster="" controls onplay="document.getElementById('video-placeholder').style.display='none'">
+                  <source src="./assets/demo.mp4" type="video/mp4">
+                </video>
+                <div id="video-placeholder" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+                  <div class="text-center">
+                    <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3 group-hover:bg-white/30 transition-all">
+                      <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                    <p class="text-white text-sm font-medium">点击播放演示视频</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2 space-y-4">
+            <!-- QR Code -->
+            <div class="glass-card rounded-2xl p-5 text-center">
+              <p class="text-sm font-semibold text-slate-700 mb-3">扫码体验小程序</p>
+              <div class="w-36 h-36 mx-auto rounded-2xl overflow-hidden bg-white shadow-md mb-3">
+                <img src="./knowledge_base/assets/小程序二维码.jpg" alt="星轨成班小程序" class="w-full h-full object-contain">
+              </div>
+              <p class="text-xs text-slate-400">搜索「星轨成班」</p>
+            </div>
+
+            <!-- Highlights -->
+            <div class="glass-card rounded-2xl p-5">
+              <h4 class="text-sm font-bold text-slate-800 mb-3">项目亮点</h4>
+              <ul class="space-y-2 text-sm text-slate-600">
+                <li class="flex items-start gap-2">
+                  <span class="text-accent mt-0.5">▸</span>
+                  <span>大模型驱动课表识别，支持Excel(.xlsx)、CSV、PDF、图片等多种格式</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-accent mt-0.5">▸</span>
+                  <span>「先体验后登录」双态设计，游客数据不上云</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-accent mt-0.5">▸</span>
+                  <span>调用Kimi k2.6视觉理解API，Prompt工程化实现50s→10s响应优化</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-accent mt-0.5">▸</span>
+                  <span>微信云开发多用户实时同步，组织数据云端隔离，支持10~50人并发协作</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-accent mt-0.5">▸</span>
+                  <span>API密钥仅存云函数环境变量，安全有边界</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-accent mt-0.5">▸</span>
+                  <span>配置自动保存：600ms本地+2s防抖云端</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Applicable scenarios -->
+            <div class="glass-card rounded-2xl p-5">
+              <h4 class="text-sm font-bold text-slate-800 mb-3">适用场景</h4>
+              <div class="flex flex-wrap gap-2">
+                <span class="px-3 py-1.5 rounded-lg bg-white/60 text-xs text-slate-600">学生会值班排班</span>
+                <span class="px-3 py-1.5 rounded-lg bg-white/60 text-xs text-slate-600">社团活动安排</span>
+                <span class="px-3 py-1.5 rounded-lg bg-white/60 text-xs text-slate-600">实验室轮值</span>
+                <span class="px-3 py-1.5 rounded-lg bg-white/60 text-xs text-slate-600">班级值日表</span>
+                <span class="px-3 py-1.5 rounded-lg bg-white/60 text-xs text-slate-600">工厂排班</span>
+                <span class="px-3 py-1.5 rounded-lg bg-white/60 text-xs text-slate-600">店铺兼职人员排班</span>
+              </div>
+            </div>
+
+            <!-- Project Documents -->
+            <div class="glass-card rounded-2xl p-5">
+              <h4 class="text-sm font-bold text-slate-800 mb-3">项目文档</h4>
+              <div class="flex flex-col gap-2">
+                <a href="./xinggui.html" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-accent to-accent-light text-white text-xs font-medium shadow-lg shadow-accent/20 hover:shadow-accent/30 transition-all">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                  查看项目技术详情
+                </a>
+                <a href="./knowledge_base/mini_program/xinggui-prd.html" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary hover:bg-primary/20 transition-all">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  查看 PRD 文档 →
+                </a>
+                <a href="./knowledge_base/mini_program/xinggui-manual.html" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary hover:bg-primary/20 transition-all">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                  查看产品说明书 →
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- Skills -->
+  <section id="skills" class="relative z-10 py-10 px-6 overflow-hidden">
+    <div class="deco-orb w-80 h-80 bg-gradient-to-br from-primary/10 to-purple-400/5 top-10 right-0 float-deco"></div>
+    <div class="deco-orb w-60 h-60 bg-gradient-to-br from-secondary/8 to-cyan-300/5 bottom-10 left-0 float-deco-delay2"></div>
+    <div class="max-w-4xl mx-auto">
+      <div class="reveal text-center mb-10">
+        <span class="text-xs font-bold tracking-widest text-primary uppercase mb-2 block">Skills</span>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-3">技能与工具</h2>
+        <p class="text-slate-500">技术理解力 × 项目管理方法论 × 产品落地能力</p>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-5">
+        <!-- PM Tools -->
+        <div class="reveal glass-card rounded-3xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            </div>
+            <h3 class="font-bold text-slate-900">项目管理</h3>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="skill-tag">TAPD / 敏捷流程</span>
+            <span class="skill-tag">Project / 进度管理</span>
+            <span class="skill-tag">组织评审</span>
+            <span class="skill-tag">风险评估 / 变更管理</span>
+            <span class="skill-tag">跨部门协调</span>
+            <span class="skill-tag">进度跟踪</span>
+          </div>
+        </div>
+
+        <!-- AI Tools -->
+        <div class="reveal reveal-delay-1 glass-card rounded-3xl p-5">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center text-white">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <h3 class="font-bold text-slate-900">AI 工具</h3>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <span class="skill-tag-accent" style="padding:4px 10px;font-size:11px">Prompt Engineering</span>
+            <span class="skill-tag-accent" style="padding:4px 10px;font-size:11px">搭建智能体 / Skill调用</span>
+            <span class="skill-tag-accent" style="padding:4px 10px;font-size:11px">WorkBuddy、TraeWork等工具</span>
+            <span class="skill-tag-accent" style="padding:4px 10px;font-size:11px">AI辅助信息整理与决策</span>
+            <span class="skill-tag-accent" style="padding:4px 10px;font-size:11px">API调用</span>
+          </div>
+        </div>
+
+        <!-- Tech -->
+        <div class="reveal reveal-delay-2 glass-card rounded-3xl p-5">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+            </div>
+            <h3 class="font-bold text-slate-900">技术基础</h3>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <span class="skill-tag-green" style="padding:4px 10px;font-size:11px">Python / 脚本编写</span>
+            <span class="skill-tag-green" style="padding:4px 10px;font-size:11px">数据分析 / 数据清洗</span>
+            <span class="skill-tag-green" style="padding:4px 10px;font-size:11px">微信小程序 / 云开发</span>
+          </div>
+        </div>
+
+        <!-- Product Tools -->
+        <div class="reveal reveal-delay-3 glass-card rounded-3xl p-5">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+            </div>
+            <h3 class="font-bold text-slate-900">产品工具</h3>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="skill-tag-amber" style="padding:6px 12px;font-size:12px">PRD撰写</span>
+            <span class="skill-tag-amber" style="padding:6px 12px;font-size:12px">xmind</span>
+            <span class="skill-tag-amber" style="padding:6px 12px;font-size:12px">需求挖掘</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certificates -->
+      <div class="reveal mt-6 glass-card rounded-3xl p-6">
+        <h3 class="font-bold text-slate-800 mb-4">证书与资质</h3>
+        <div class="flex flex-wrap gap-3">
+          <div class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/60 border border-white/70">
+            <span class="text-lg">📜</span>
+            <div>
+              <div class="text-sm font-medium text-slate-800">二级造价工程师</div>
+              <div class="text-xs text-slate-500">专业资质</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/60 border border-white/70">
+            <span class="text-lg">🌐</span>
+            <div>
+              <div class="text-sm font-medium text-slate-800">大学英语六级 CET-6</div>
+              <div class="text-xs text-slate-500">语言能力</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="relative z-10 py-10 px-6 overflow-hidden">
+    <div class="deco-orb w-96 h-96 bg-gradient-to-br from-accent/10 to-primary-light/5 -top-20 left-1/2 -translate-x-1/2 float-deco"></div>
+    <div class="deco-orb w-64 h-64 bg-gradient-to-br from-purple-400/8 to-primary/5 bottom-0 right-0 float-deco-delay"></div>
+    <div class="max-w-3xl mx-auto text-center">
+      <div class="reveal">
+        <span class="text-xs font-bold tracking-widest text-primary uppercase mb-2 block">Contact</span>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-3">期待与您交流</h2>
+        <p class="text-slate-500 mb-8">无论是项目合作、职位机会还是技术探讨，都欢迎随时联系我。</p>
+      </div>
+
+      <div class="reveal reveal-delay-1 flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+        <a href="./knowledge_base/resume/陈宇翔简历.pdf" target="_blank" class="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-semibold text-sm hover:shadow-xl hover:shadow-primary/30 transition-all light-sweep">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          查看 PDF 简历
+        </a>
+      </div>
+
+      <div class="reveal reveal-delay-2 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-slate-500">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          736053336@qq.com
+        </div>
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          18953195569
+        </div>
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          成都
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="relative z-10 py-6 text-center text-xs text-slate-400">
+    <p> 陈宇翔 · 用AI与项目管理创造价值</p>
+  </footer>
+  <script>
+    // ========== Particle Background ==========
+    (function() {
+      const canvas = document.getElementById('particles-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      let mouseX = 0, mouseY = 0;
+      let isTouch = window.matchMedia('(pointer: coarse)').matches;
+      let animId;
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      const PARTICLE_COUNT = isTouch ? 0 : 25;
+      const CONNECTION_DIST = 120;
+
+      class Particle {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 0.3;
+          this.vy = (Math.random() - 0.5) * 0.3;
+          this.radius = Math.random() * 2 + 1;
+          this.opacity = Math.random() * 0.3 + 0.1;
+        }
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+          // Mouse interaction
+          const dx = mouseX - this.x;
+          const dy = mouseY - this.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < 150) {
+            const force = (150 - dist) / 150 * 0.02;
+            this.vx -= dx * force * 0.01;
+            this.vy -= dy * force * 0.01;
+          }
+        }
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(0, 101, 253, ${this.opacity})`;
+          ctx.fill();
+        }
+      }
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        particles.push(new Particle());
+      }
+
+      function drawConnections() {
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < CONNECTION_DIST) {
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(0, 101, 253, ${0.08 * (1 - dist/CONNECTION_DIST)})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      function animate() {
+        if (!document.hidden) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          particles.forEach(p => { p.update(); p.draw(); });
+          drawConnections();
+        }
+        animId = requestAnimationFrame(animate);
+      }
+
+      if (PARTICLE_COUNT > 0) {
+        document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+        animate();
+      }
+    })();
+
+    // ========== Typewriter ==========
+    (function() {
+      const el = document.getElementById('typewriter');
+      if (!el) return;
+      const phrases = ['AI应用开发者', '研发项目管理'];
+      let phraseIndex = 0;
+      let charIndex = 0;
+
+      function type() {
+        const current = phrases[phraseIndex];
+        el.textContent = current.substring(0, charIndex + 1);
+        charIndex++;
+
+        if (charIndex === current.length) {
+          setTimeout(() => {
+            el.textContent = '';
+            charIndex = 0;
+            phraseIndex = (phraseIndex + 1) % phrases.length;
+            setTimeout(type, 300);
+          }, 2000);
+        } else {
+          setTimeout(type, 120);
+        }
+      }
+      setTimeout(type, 500);
+    })();
+
+    // ========== Scroll Reveal ==========
+    (function() {
+      const reveals = document.querySelectorAll('.reveal');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+          }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+      reveals.forEach(el => observer.observe(el));
+    })();
+
+    // ========== Navbar Scroll ==========
+    (function() {
+      const navbar = document.getElementById('navbar');
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+          navbar.classList.add('nav-glass');
+        } else {
+          navbar.classList.remove('nav-glass');
+        }
+      });
+    })();
+
+    // ========== Mobile Menu ==========
+    (function() {
+      const btn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      if (btn && menu) {
+        btn.addEventListener('click', () => {
+          menu.classList.toggle('hidden');
+        });
+        menu.querySelectorAll('a').forEach(link => {
+          link.addEventListener('click', () => menu.classList.add('hidden'));
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

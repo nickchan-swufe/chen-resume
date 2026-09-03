@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>陈宇翔 — AI驱动的产品探索者 · 项目管理实践者</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Manrope', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+            display: ['Manrope', 'Noto Sans SC', 'sans-serif'],
+          },
+          colors: {
+            primary: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' },
+            accent: { light: '#0ea5e9', DEFAULT: '#0065fd', deep: '#0050cc' },
+            surface: { DEFAULT: '#f8fafc', elevated: '#ffffff' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --deep-blue: #0065fd;
+      --sky-blue: #0ea5e9;
+      --ice-purple: #8b5cf6;
+      --bg-gradient-start: #f0f7ff;
+      --bg-gradient-mid: #f8fbff;
+      --bg-gradient-end: #ffffff;
+    }
+
+    * { scroll-behavior: smooth; }
+    body {
+      font-family: 'Manrope', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.93) 0%, rgba(255,255,255,0.90) 50%, rgba(255,255,255,0.93) 100%),
+        url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80&auto=format&fit=crop') center/cover no-repeat fixed,
+        linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 30%, var(--bg-gradient-end) 100%);
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+
+    /* Particle Canvas */
+    #particle-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Glassmorphism */
+    .glass {
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+    .glass-strong {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(24px) saturate(1.5);
+      -webkit-backdrop-filter: blur(24px) saturate(1.5);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(16px) saturate(1.3);
+      -webkit-backdrop-filter: blur(16px) saturate(1.3);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 4px 24px rgba(0, 101, 253, 0.06), 0 1px 3px rgba(0, 101, 253, 0.04);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-card:hover {
+      background: rgba(255, 255, 255, 0.75);
+      box-shadow: 0 8px 40px rgba(0, 101, 253, 0.12), 0 2px 8px rgba(0, 101, 253, 0.08);
+      transform: translateY(-4px);
+    }
+
+    /* Glow effects */
+    .glow-ring {
+      box-shadow: 0 0 0 3px rgba(0, 101, 253, 0.15), 0 0 40px rgba(0, 101, 253, 0.2), 0 0 80px rgba(14, 165, 233, 0.1);
+    }
+    .text-glow {
+      text-shadow: 0 0 40px rgba(0, 101, 253, 0.3);
+    }
+    .accent-glow {
+      box-shadow: 0 0 20px rgba(0, 101, 253, 0.15);
+    }
+
+    /* Light sweep on hover */
+    .light-sweep {
+      position: relative;
+      overflow: hidden;
+    }
+    .light-sweep::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 50%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transition: left 0.6s ease;
+    }
+    .light-sweep:hover::after {
+      left: 150%;
+    }
+
+    /* Typewriter */
+    .typewriter-cursor::after {
+      content: '|';
+      animation: blink 1s step-end infinite;
+      color: var(--deep-blue);
+      font-weight: 300;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* Scroll animations */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    /* Timeline */
+    .timeline-line {
+      position: absolute;
+      left: 24px;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, var(--deep-blue), var(--sky-blue), transparent);
+    }
+    .timeline-dot {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--deep-blue), var(--sky-blue));
+      border: 3px solid white;
+      box-shadow: 0 0 0 3px rgba(0, 101, 253, 0.2);
+      flex-shrink: 0;
+    }
+
+    /* Skill bars */
+    .skill-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(0, 101, 253, 0.08);
+      overflow: hidden;
+    }
+    .skill-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--deep-blue), var(--sky-blue));
+      width: 0;
+      transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Nav */
+    .nav-glass {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 1px 20px rgba(0, 101, 253, 0.06);
+    }
+
+    /* Floating animation */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .float-anim { animation: float 4s ease-in-out infinite; }
+    .float-anim-delay { animation: float 4s ease-in-out 1s infinite; }
+    .float-anim-delay2 { animation: float 4s ease-in-out 2s infinite; }
+
+    /* Shimmer */
+    @keyframes shimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    .shimmer-text {
+      background: linear-gradient(90deg, #0f172a 0%, var(--deep-blue) 50%, #0f172a 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 4s linear infinite;
+    }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--deep-blue), var(--sky-blue), var(--ice-purple));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Tag pills */
+    .tag-pill {
+      background: rgba(0, 101, 253, 0.08);
+      border: 1px solid rgba(0, 101, 253, 0.15);
+      color: var(--deep-blue);
+      transition: all 0.3s ease;
+    }
+    .tag-pill:hover {
+      background: rgba(0, 101, 253, 0.15);
+      border-color: rgba(0, 101, 253, 0.3);
+      transform: scale(1.05);
+    }
+
+    /* QR hover */
+    .qr-container {
+      transition: all 0.4s ease;
+    }
+    .qr-container:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 32px rgba(0, 101, 253, 0.15);
+    }
+
+    /* Section titles */
+    .section-title {
+      position: relative;
+      display: inline-block;
+    }
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: -6px; left: 0;
+      width: 48px; height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--deep-blue), var(--sky-blue));
+    }
+
+    /* Smooth scroll offset for fixed nav */
+    section[id] { scroll-margin-top: 80px; }
+
+    /* Background Decorations */
+    .bg-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+    }
+    .bg-grid {
+      background-image: radial-gradient(circle, rgba(0, 101, 253, 0.06) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+    }
+    .bg-dots {
+      background-image: radial-gradient(circle, rgba(0, 101, 253, 0.04) 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+      pointer-events: none;
+    }
+    .bg-mesh {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(at 40% 20%, rgba(0, 101, 253, 0.08) 0px, transparent 50%),
+        radial-gradient(at 80% 0%, rgba(14, 165, 233, 0.06) 0px, transparent 50%),
+        radial-gradient(at 0% 50%, rgba(139, 92, 246, 0.04) 0px, transparent 50%),
+        radial-gradient(at 80% 50%, rgba(0, 101, 253, 0.05) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(14, 165, 233, 0.06) 0px, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orbit-ring {
+      position: absolute;
+      border: 1px solid rgba(0, 101, 253, 0.08);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: orbit-rotate 60s linear infinite;
+    }
+    @keyframes orbit-rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes float-slow {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(3deg); }
+    }
+    .float-deco {
+      animation: float-slow 8s ease-in-out infinite;
+    }
+    .float-deco-delay {
+      animation: float-slow 10s ease-in-out 2s infinite;
+    }
+    .float-deco-delay2 {
+      animation: float-slow 12s ease-in-out 4s infinite;
+    }
+
+    /* Mobile particles disabled via JS */
+    @media (max-width: 768px) {
+      .hide-mobile { display: none; }
+      .bg-blob { display: none; }
+      .orbit-ring { display: none; }
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased relative">
+  <canvas id="particle-canvas"></canvas>
+  <!-- Global mesh gradient overlay -->
+  <div class="bg-mesh fixed inset-0"></div>
+  <!-- Global dot pattern -->
+  <div class="bg-dots fixed inset-0 opacity-50"></div>
+
+  <!-- Navigation -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-500">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="#hero" class="font-display font-bold text-lg text-slate-800 tracking-tight">陈宇翔</a>
+      <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+        <a href="#about" class="hover:text-accent transition-colors">关于</a>
+        <a href="#education" class="hover:text-accent transition-colors">教育</a>
+        <a href="#experience" class="hover:text-accent transition-colors">经历</a>
+        <a href="#project" class="hover:text-accent transition-colors">项目</a>
+        <a href="#skills" class="hover:text-accent transition-colors">技能</a>
+        <a href="#contact" class="px-4 py-2 rounded-full bg-gradient-to-r from-accent to-accent-light text-white text-xs font-semibold hover:shadow-lg hover:shadow-accent/25 transition-all">联系我</a>
+      </div>
+      <button id="mobile-menu-btn" class="md:hidden p-2 text-slate-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden md:hidden glass-strong mx-4 rounded-2xl p-4 mb-4">
+      <div class="flex flex-col gap-3 text-sm font-medium text-slate-600">
+        <a href="#about" class="py-2 px-3 rounded-lg hover:bg-accent/5">关于</a>
+        <a href="#education" class="py-2 px-3 rounded-lg hover:bg-accent/5">教育</a>
+      <a href="#experience" class="py-2 px-3 rounded-lg hover:bg-accent/5">经历</a>
+      <a href="#project" class="py-2 px-3 rounded-lg hover:bg-accent/5">项目</a>
+      <a href="#skills" class="py-2 px-3 rounded-lg hover:bg-accent/5">技能</a>
+        <a href="#contact" class="py-2 px-3 rounded-lg bg-gradient-to-r from-accent to-accent-light text-white text-center">联系我</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="hero" class="relative z-10 min-h-screen flex items-center justify-center pt-20 pb-16 px-6 overflow-hidden">
+    <!-- Decorative blobs -->
+    <div class="bg-blob w-96 h-96 bg-gradient-to-br from-accent/20 to-accent-light/10 -top-20 -right-20 float-deco"></div>
+    <div class="bg-blob w-72 h-72 bg-gradient-to-br from-accent-light/15 to-purple-400/10 bottom-20 -left-20 float-deco-delay"></div>
+    <div class="bg-blob w-64 h-64 bg-gradient-to-br from-cyan-300/10 to-accent/10 top-1/3 right-1/4 float-deco-delay2"></div>
+    <!-- Orbit ring -->
+    <div class="orbit-ring w-[600px] h-[600px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-30"></div>
+    <div class="orbit-ring w-[800px] h-[800px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20" style="animation-duration: 80s; animation-direction: reverse;"></div>
+    <div class="max-w-6xl mx-auto w-full">
+      <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <!-- Left: Avatar & Info -->
+        <div class="text-center lg:text-left order-2 lg:order-1">
+          <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass text-xs font-medium text-accent mb-6">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            求职中 — 项目管理 / AI应用 / AI产品经理
+          </div>
+          <h1 class="font-display font-black text-5xl md:text-6xl lg:text-7xl tracking-tight mb-4">
+            <span class="text-slate-900">陈宇翔</span>
+          </h1>
+          <p id="typewriter" class="typewriter-cursor text-xl md:text-2xl font-light text-slate-500 mb-8 h-8"></p>
+          <p class="text-slate-500 text-sm md:text-base leading-relaxed max-w-lg mx-auto lg:mx-0 mb-8">
+            5年工程项目管理经验 · 2段腾讯游戏研发项目实习 · 从施工现场到互联网产研，<br class="hidden md:block">用技术理解力驱动产品落地，用项目管理方法论保障交付质量。
+          </p>
+          <div class="flex flex-wrap gap-3 justify-center lg:justify-start mb-8">
+            <a href="#project" class="px-6 py-3 rounded-xl bg-gradient-to-r from-accent to-accent-light text-white font-semibold text-sm hover:shadow-xl hover:shadow-accent/30 transition-all light-sweep">查看项目</a>
+            <a href="#contact" class="px-6 py-3 rounded-xl glass text-slate-700 font-semibold text-sm hover:bg-white/80 transition-all">联系我</a>
+          </div>
+          <div class="flex items-center gap-4 justify-center lg:justify-start text-xs text-slate-400">
+            <span class="flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>四川成都</span>
+            <span class="flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>736053336@qq.com</span>
+          </div>
+        </div>
+        <!-- Right: Avatar + Stats -->
+        <div class="order-1 lg:order-2 flex flex-col items-center">
+          <div class="relative mb-10">
+            <div class="absolute inset-0 rounded-full bg-gradient-to-br from-accent/20 to-accent-light/20 blur-2xl scale-110"></div>
+            <img src="./knowledge_base/assets/个人正装照.jpg" alt="陈宇翔" class="relative w-48 h-48 md:w-64 md:h-64 rounded-full object-cover glow-ring border-4 border-white/80 shadow-2xl">
+            <div class="absolute -bottom-2 -right-2 w-14 h-14 rounded-full glass-strong flex items-center justify-center shadow-lg">
+              <span class="text-xl">🚀</span>
+            </div>
+          </div>
+          <!-- Stat Cards -->
+          <div class="grid grid-cols-2 gap-3 w-full max-w-sm">
+            <div class="glass-card rounded-2xl p-4 text-center float-anim">
+              <div class="text-2xl font-black gradient-text">5年</div>
+              <div class="text-xs text-slate-500 mt-1">工程管理经验</div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 text-center float-anim-delay">
+              <div class="text-2xl font-black gradient-text">2段</div>
+              <div class="text-xs text-slate-500 mt-1">腾讯实习经历</div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 text-center float-anim-delay2">
+              <div class="text-2xl font-black gradient-text">1款</div>
+              <div class="text-xs text-slate-500 mt-1">上线产品</div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 text-center float-anim">
+              <div class="text-2xl font-black gradient-text">3.92</div>
+              <div class="text-xs text-slate-500 mt-1">硕士GPA / 5.0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Scroll indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-400 animate-bounce">
+      <span class="text-xs">向下滚动</span>
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section id="about" class="relative z-10 py-24 px-6 overflow-hidden">
+    <div class="bg-blob w-80 h-80 bg-gradient-to-br from-accent/10 to-purple-400/5 top-10 right-0 float-deco"></div>
+    <div class="bg-blob w-60 h-60 bg-gradient-to-br from-accent-light/10 to-cyan-300/5 bottom-10 left-0 float-deco-delay"></div>
+    <div class="max-w-4xl mx-auto">
+      <div class="reveal">
+        <span class="text-xs font-bold tracking-widest text-accent uppercase mb-3 block">About Me</span>
+        <h2 class="section-title text-3xl md:text-4xl font-black text-slate-900 mb-10">关于我</h2>
+      </div>
+      <div class="grid md:grid-cols-5 gap-8">
+        <div class="md:col-span-3 reveal reveal-delay-1">
+          <div class="glass-card rounded-3xl p-8">
+            <p class="text-slate-600 leading-relaxed mb-6">
+              5年工程实战经验 + 2段腾讯产研实习，从施工现场走到互联网研发。懂<strong class="text-slate-800">TAPD敏捷流程</strong>，也会写<strong class="text-slate-800">Python做数据分析</strong>；能牵头SOP制定，也能亲手把想法做成上线产品。
+            </p>
+            <section id="education" class="relative z-10 py-24 px-6 overflow-hidden">
+    <div class="bg-blob w-72 h-72 bg-gradient-to-br from-accent-light/10 to-purple-400/5 top-0 left-0 float-deco-delay"></div>
+    <div class="bg-blob w-64 h-64 bg-gradient-to-br from-cyan-300/8 to-accent/5 bottom-0 right-0 float-deco-delay2"></div>
+    <div class="max-w-4xl mx-auto">
+      <div class="reveal text-center mb-14">
+        <span class="text-xs font-bold tracking-widest text-accent uppercase mb-3 block">Education</span>
+        <h2 class="section-title text-3xl md:text-4xl font-black text-slate-900 mx-auto mb-4">教育背景</h2>
+        <p class="text-slate-500">工学与管理学双学士学位 + 项目管理硕士学位，跨学科知识体系。</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <section id="experience" class="relative z-10 py-24 px-6 overflow-hidden">
+    <div class="bg-blob w-80 h-80 bg-gradient-to-br from-accent/8 to-accent-light/5 top-1/4 -right-20 float-deco"></div>
+    <div class="orbit-ring w-[500px] h-[500px] top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
+    <div class="max-w-4xl mx-auto">
+      <div class="reveal text-center mb-14">
+        <span class="text-xs font-bold tracking-widest text-accent uppercase mb-3 block">Experience</span>
+        <h2 class="section-title text-3xl md:text-4xl font-black text-slate-900 mx-auto mb-4">工作与实习经历</h2>
+        <p class="text-slate-500">从工程现场到互联网产研，跨领域积累项目管理实战经验。</p>
+      </div>
+
+      <div class="relative">
+        <div class="timeline-line"></div>
+
+        <section id="project" class="relative z-10 py-24 px-6 overflow-hidden">
+    <div class="bg-blob w-96 h-96 bg-gradient-to-br from-purple-400/10 to-accent/5 -top-10 -left-20 float-deco"></div>
+    <div class="bg-blob w-72 h-72 bg-gradient-to-br from-accent-light/10 to-cyan-300/5 bottom-20 -right-10 float-deco-delay"></div>
+    <div class="max-w-5xl mx-auto">
+      <div class="reveal text-center mb-12">
+        <span class="text-xs font-bold tracking-widest text-accent uppercase mb-3 block">Featured Project</span>
+        <h2 class="section-title text-3xl md:text-4xl font-black text-slate-900 mx-auto mb-4">项目展示</h2>
+        <p class="text-slate-500 max-w-xl mx-auto">从痛点出发，用AI与算法解决真实问题，独立完成从需求分析到上线运营的全流程。</p>
+      </div>
+
+      <section id="skills" class="relative z-10 py-24 px-6 overflow-hidden">
+    <div class="bg-blob w-80 h-80 bg-gradient-to-br from-accent/10 to-purple-400/5 top-10 right-0 float-deco"></div>
+    <div class="bg-blob w-60 h-60 bg-gradient-to-br from-accent-light/8 to-cyan-300/5 bottom-10 left-0 float-deco-delay2"></div>
+    <div class="max-w-4xl mx-auto">
+      <div class="reveal text-center mb-14">
+        <span class="text-xs font-bold tracking-widest text-accent uppercase mb-3 block">Skills</span>
+        <h2 class="section-title text-3xl md:text-4xl font-black text-slate-900 mx-auto mb-4">技能与工具</h2>
+        <p class="text-slate-500">技术理解力 × 项目管理方法论 × 产品落地能力</p>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-6">
+        <!-- PM Tools -->
+        <div class="reveal glass-card rounded-3xl p-6 md:p-8">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            </div>
+            <h3 class="font-bold text-slate-900">项目管理</h3>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">TAPD / 敏捷流程</span><span class="text-slate-400 text-xs">熟练</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="90"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">Project / 进度管理</span><span class="text-slate-400 text-xs">熟练</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="85"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">需求管理 / SOP制定</span><span class="text-slate-400 text-xs">精通</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="92"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">风险评估 / 变更管理</span><span class="text-slate-400 text-xs">熟练</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="88"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Tools -->
+        <div class="reveal reveal-delay-1 glass-card rounded-3xl p-6 md:p-8">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center text-white">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <h3 class="font-bold text-slate-900">AI 工具</h3>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">大模型应用 / Prompt Engineering</span><span class="text-slate-400 text-xs">熟练</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="82"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">AI智能体 / Skill调用</span><span class="text-slate-400 text-xs">熟练</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="78"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">Kimi / ChatGPT 等工具</span><span class="text-slate-400 text-xs">熟练</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="85"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">AI辅助信息整理与决策</span><span class="text-slate-400 text-xs">熟练</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="80"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tech -->
+        <div class="reveal reveal-delay-2 glass-card rounded-3xl p-6 md:p-8">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+            </div>
+            <h3 class="font-bold text-slate-900">技术基础</h3>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">Python / 脚本编写</span><span class="text-slate-400 text-xs">熟练</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="75"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">数据分析 / 数据清洗</span><span class="text-slate-400 text-xs">熟练</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="72"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">微信小程序 / 云开发</span><span class="text-slate-400 text-xs">掌握</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="68"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-700 font-medium">SQL / API基础</span><span class="text-slate-400 text-xs">了解</span></div>
+              <div class="skill-bar"><div class="skill-bar-fill" data-width="55"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Tools -->
+        <div class="reveal reveal-delay-3 glass-card rounded-3xl p-6 md:p-8">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+            </div>
+            <h3 class="font-bold text-slate-900">产品工具</h3>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-xl bg-white/50 border border-white/60 text-center">
+              <div class="text-lg mb-1">🎨</div>
+              <div class="text-xs font-medium text-slate-700">Figma</div>
+              <div class="text-xs text-slate-400">熟练</div>
+            </div>
+            <div class="p-3 rounded-xl bg-white/50 border border-white/60 text-center">
+              <div class="text-lg mb-1">📐</div>
+              <div class="text-xs font-medium text-slate-700">Axure / 墨刀</div>
+              <div class="text-xs text-slate-400">熟练</div>
+            </div>
+            <div class="p-3 rounded-xl bg-white/50 border border-white/60 text-center">
+              <div class="text-lg mb-1">📊</div>
+              <div class="text-xs font-medium text-slate-700">数据分析工具</div>
+              <div class="text-xs text-slate-400">熟练</div>
+            </div>
+            <div class="p-3 rounded-xl bg-white/50 border border-white/60 text-center">
+              <div class="text-lg mb-1">📝</div>
+              <div class="text-xs font-medium text-slate-700">PRD撰写</div>
+              <div class="text-xs text-slate-400">精通</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certificates -->
+      <div class="reveal mt-8 glass-card rounded-3xl p-6 md:p-8">
+        <h3 class="font-bold text-slate-800 mb-5">证书与资质</h3>
+        <div class="flex flex-wrap gap-3">
+          <div class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/60 border border-white/70">
+            <span class="text-lg">📜</span>
+            <div>
+              <div class="text-sm font-medium text-slate-800">二级造价工程师</div>
+              <div class="text-xs text-slate-500">专业资质</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/60 border border-white/70">
+            <span class="text-lg">🌐</span>
+            <div>
+              <div class="text-sm font-medium text-slate-800">大学英语六级 CET-6</div>
+              <div class="text-xs text-slate-500">语言能力</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer / Contact -->
+  <section id="contact" class="relative z-10 py-24 px-6 overflow-hidden">
+    <div class="bg-blob w-96 h-96 bg-gradient-to-br from-accent/10 to-accent-light/5 -top-20 left-1/2 -translate-x-1/2 float-deco"></div>
+    <div class="bg-blob w-64 h-64 bg-gradient-to-br from-purple-400/8 to-accent/5 bottom-0 right-0 float-deco-delay"></div>
+    <div class="max-w-3xl mx-auto text-center">
+      <div class="reveal">
+        <span class="text-xs font-bold tracking-widest text-accent uppercase mb-3 block">Contact</span>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-4">期待与您交流</h2>
+        <p class="text-slate-500 mb-10">无论是项目合作、职位机会还是技术探讨，都欢迎随时联系我。</p>
+      </div>
+
+      <div class="reveal reveal-delay-1 flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
+        <a href="mailto:736053336@qq.com" class="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-accent to-accent-light text-white font-semibold text-sm hover:shadow-xl hover:shadow-accent/30 transition-all light-sweep">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          发送邮件
+        </a>
+        <a href="./knowledge_base/resume/陈宇翔简历.pdf" download class="flex items-center gap-2 px-6 py-3.5 rounded-xl glass text-slate-700 font-semibold text-sm hover:bg-white/80 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          下载 PDF 简历
+        </a>
+      </div>
+
+      <div class="reveal reveal-delay-2 flex flex-col sm:flex-row items-center justify-center gap-8 text-sm text-slate-500">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          736053336@qq.com
+        </div>
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          18953195569
+        </div>
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          四川成都
+        </div>
+      </div>
+
+      <div class="reveal reveal-delay-3 mt-12 pt-8 border-t border-slate-200/60">
+        <p class="text-xs text-slate-400">陈宇翔的个人简历 · 2026</p>
+        <p class="text-xs text-slate-400 mt-1">项目管理 / AI应用 / AI产品经理</p>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // ===================== Particle Background =====================
+    (function() {
+      const canvas = document.getElementById('particle-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      let mouse = { x: null, y: null };
+      let isMobile = window.innerWidth < 768;
+      let animationId;
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        isMobile = window.innerWidth < 768;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      const PARTICLE_COUNT = isMobile ? 0 : 50;
+      const CONNECTION_DIST = 120;
+      const MOUSE_DIST = 150;
+
+      class Particle {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 0.4;
+          this.vy = (Math.random() - 0.5) * 0.4;
+          this.radius = Math.random() * 2 + 1;
+          this.baseAlpha = Math.random() * 0.3 + 0.1;
+        }
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+
+          // Mouse interaction - gentle repel
+          if (mouse.x !== null && mouse.y !== null) {
+            const dx = this.x - mouse.x;
+            const dy = this.y - mouse.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < MOUSE_DIST) {
+              const force = (MOUSE_DIST - dist) / MOUSE_DIST * 0.02;
+              this.vx += (dx / dist) * force;
+              this.vy += (dy / dist) * force;
+            }
+          }
+
+          // Dampen velocity
+          this.vx *= 0.999;
+          this.vy *= 0.999;
+        }
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(0, 101, 253, ${this.baseAlpha})`;
+          ctx.fill();
+        }
+      }
+
+      function initParticles() {
+        particles = [];
+        if (isMobile) return;
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+          particles.push(new Particle());
+        }
+      }
+      initParticles();
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!isMobile) {
+          // Draw flowing gradient background
+          const gradient = ctx.createRadialGradient(
+            canvas.width * 0.3, canvas.height * 0.3, 0,
+            canvas.width * 0.3, canvas.height * 0.3, canvas.width * 0.6
+          );
+          gradient.addColorStop(0, 'rgba(0, 101, 253, 0.03)');
+          gradient.addColorStop(0.5, 'rgba(14, 165, 233, 0.02)');
+          gradient.addColorStop(1, 'transparent');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Update and draw particles
+          particles.forEach(p => {
+            p.update();
+            p.draw();
+          });
+
+          // Draw connections
+          for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+              const dx = particles[i].x - particles[j].x;
+              const dy = particles[i].y - particles[j].y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < CONNECTION_DIST) {
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.strokeStyle = `rgba(0, 101, 253, ${0.08 * (1 - dist / CONNECTION_DIST)})`;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+              }
+            }
+          }
+        }
+
+        animationId = requestAnimationFrame(animate);
+      }
+      animate();
+
+      window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+      });
+      window.addEventListener('mouseleave', () => {
+        mouse.x = null;
+        mouse.y = null;
+      });
+
+      // Re-init on resize if mobile status changed
+      let wasMobile = isMobile;
+      window.addEventListener('resize', () => {
+        isMobile = window.innerWidth < 768;
+        if (isMobile !== wasMobile) {
+          wasMobile = isMobile;
+          initParticles();
+        }
+      });
+    })();
+
+    // ===================== Video Demo Placeholder =====================
+    (function() {
+      const placeholder = document.getElementById('video-placeholder');
+      const video = document.getElementById('demo-video');
+      if (placeholder && video) {
+        placeholder.addEventListener('click', () => {
+          const src = video.querySelector('source').src;
+          if (src && src !== window.location.href && src !== '') {
+            placeholder.querySelector('div').classList.add('hidden');
+            placeholder.querySelector('p').classList.add('hidden');
+            video.classList.remove('hidden');
+            video.play();
+          } else {
+            // Show a gentle tooltip that video is not uploaded yet
+            const tip = document.createElement('div');
+            tip.textContent = '视频尚未上传，请替换 source src 后重试';
+            tip.className = 'absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-slate-800 text-white text-xs whitespace-nowrap z-10';
+            placeholder.appendChild(tip);
+            setTimeout(() => tip.remove(), 2500);
+          }
+        });
+      }
+    })();
+
+    // ===================== Typewriter Effect =====================
+    (function() {
+      const text = 'AI驱动的产品探索者 · 项目管理实践者';
+      const el = document.getElementById('typewriter');
+      let i = 0;
+      function type() {
+        if (i < text.length) {
+          el.textContent += text.charAt(i);
+          i++;
+          setTimeout(type, 80 + Math.random() * 60);
+        }
+      }
+      setTimeout(type, 600);
+    })();
+
+    // ===================== Scroll Reveal =====================
+    (function() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            // Animate skill bars when visible
+            entry.target.querySelectorAll('.skill-bar-fill').forEach(bar => {
+              const width = bar.dataset.width;
+              if (width) bar.style.width = width + '%';
+            });
+          }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    })();
+
+    // ===================== Navbar Glass on Scroll =====================
+    (function() {
+      const nav = document.getElementById('navbar');
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 80) {
+          nav.classList.add('nav-glass');
+        } else {
+          nav.classList.remove('nav-glass');
+        }
+      });
+    })();
+
+    // ===================== Mobile Menu =====================
+    (function() {
+      const btn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      btn.addEventListener('click', () => {
+        menu.classList.toggle('hidden');
+      });
+      menu.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => menu.classList.add('hidden'));
+      });
+    })();
+
+    // ===================== Project Filter =====================
+    (function() {
+      const tabs = document.querySelectorAll('.project-tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => {
+            t.classList.remove('active', 'bg-gradient-to-r', 'from-accent', 'to-accent-light', 'text-white', 'shadow-lg', 'shadow-accent/20');
+            t.classList.add('glass', 'text-slate-600');
+          });
+          tab.classList.add('active', 'bg-gradient-to-r', 'from-accent', 'to-accent-light', 'text-white', 'shadow-lg', 'shadow-accent/20');
+          tab.classList.remove('glass', 'text-slate-600');
+
+          const filter = tab.dataset.filter;
+          document.querySelectorAll('.project-card').forEach(card => {
+            if (filter === 'all' || card.dataset.categories.includes(filter)) {
+              card.style.display = 'block';
+              setTimeout(() => card.style.opacity = '1', 10);
+            } else {
+              card.style.opacity = '0';
+              setTimeout(() => card.style.display = 'none', 300);
+            }
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
